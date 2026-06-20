@@ -1,0 +1,20 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:LicenseMe.Avalonia.ViewModels"
+        xmlns:views="using:LicenseMe.Avalonia.Views"
+        x:Class="LicenseMe.Avalonia.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="LicenseMe"
+        Width="1000" Height="680"
+        MinWidth="700" MinHeight="480">
+    <Grid RowDefinitions="*,Auto">
+        <TabControl Grid.Row="0">
+            <TabItem Header="Scan">
+                <views:ScanView DataContext="{Binding ScanVm}" />
+            </TabItem>
+            <TabItem Header="Settings">
+                <views:SettingsView DataContext="{Binding SettingsVm}" />
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

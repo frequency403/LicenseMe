@@ -1,0 +1,17 @@
+# Maintainer: Oliver Schantz <frequency403@users.noreply.github.com>
+pkgname=license-me-gui-bin
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Avalonia GUI for managing LICENSE and README files in git repositories (pre-built)"
+arch=('x86_64')
+url="https://github.com/frequency403/LicenseMe"
+license=('MIT')
+provides=('license-me-gui')
+conflicts=('license-me-gui-git')
+depends=('libx11' 'libxrandr' 'libxinerama' 'libxcursor' 'libxi')
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/frequency403/LicenseMe/releases/download/gui/v${pkgver}/license-me-gui-linux-x64-${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+    install -Dm755 "${srcdir}/LicenseMeGui" "${pkgdir}/usr/bin/license-me-gui"
+}

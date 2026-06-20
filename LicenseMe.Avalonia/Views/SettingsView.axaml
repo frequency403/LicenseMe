@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:LicenseMe.Avalonia.ViewModels"
+             x:Class="LicenseMe.Avalonia.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+    <ScrollViewer>
+        <StackPanel Margin="16" Spacing="12">
+            <TextBlock Text="Settings" FontSize="18" FontWeight="SemiBold" />
+
+            <CheckBox IsChecked="{Binding CachingEnabled}"
+                      Content="Enable license catalog caching" />
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="Default license SPDX ID" />
+                <TextBox Text="{Binding DefaultSpdxId}" Watermark="e.g. MIT" />
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="Max scan depth (empty = unlimited)" />
+                <NumericUpDown Value="{Binding MaxScanDepth}"
+                               Minimum="1" Maximum="100"
+                               AllowSpin="True" />
+            </StackPanel>
+
+            <StackPanel Spacing="4">
+                <TextBlock Text="Excluded paths" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Grid.Column="0"
+                             Text="{Binding NewExcludedPath}"
+                             Watermark="/path/to/exclude" />
+                    <Button Grid.Column="1" Content="Add"
+                            Command="{Binding AddExcludedPathCommand}" Margin="4,0,0,0" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding ExcludedPaths}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" Text="{Binding}" VerticalAlignment="Center" />
+                                <Button Grid.Column="1" Content="✕"
+                                        Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).RemoveExcludedPathCommand}"
+                                        CommandParameter="{Binding}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <Button Content="Save" Command="{Binding SaveCommand}" Classes="accent" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

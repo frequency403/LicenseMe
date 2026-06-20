@@ -1,0 +1,85 @@
+name: Release – CLI
+
+on:
+  push:
+    tags: [ 'cli/v*' ]
+
+jobs:
+  extract-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - id: ver
+        run: echo "version=${GITHUB_REF#refs/tags/cli/v}" >> $GITHUB_OUTPUT
+
+  test:
+    uses: ./.github/workflows/reusable-test.yml
+
+  build-linux:
+    needs: [ test, extract-version ]
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      project: src/LicenseMe.Cli/LicenseMe.Cli.csproj
+      rid: linux-x64
+      artifact-name: license-me-cli-linux-x64
+
+  build-windows:
+    needs: [ test, extract-version ]
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      project: src/LicenseMe.Cli/LicenseMe.Cli.csproj
+      rid: win-x64
+      artifact-name: license-me-cli-win-x64
+
+  release:
+    needs: [ extract-version, build-linux, build-windows ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ needs.extract-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: ./dist
+
+      - name: Archive binaries
+        run: |
+          cd dist
+          VERSION="${{ needs.extract-version.outputs.version }}"
+          tar -czf ../license-me-cli-linux-x64-${VERSION}.tar.gz \
+              -C license-me-cli-linux-x64 .
+          zip -j ../license-me-cli-win-x64-${VERSION}.zip \
+              license-me-cli-win-x64/*
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "CLI v${{ needs.extract-version.outputs.version }}"
+          generate_release_notes: true
+          files: |
+            license-me-cli-linux-x64-*.tar.gz
+            license-me-cli-win-x64-*.zip
+
+  aur-bin:
+    needs: [ extract-version, release ]
+    uses: ./.github/workflows/reusable-aur-deploy.yml
+    with:
+      package-name: license-me-cli-bin
+      pkgver: ${{ needs.extract-version.outputs.version }}
+      artifact-name: license-me-cli-linux-x64
+    secrets:
+      AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+
+  aur-git:
+    needs: [ extract-version, test ]
+    uses: ./.github/workflows/reusable-aur-deploy.yml
+    with:
+      package-name: license-me-cli-git
+      pkgver: ${{ needs.extract-version.outputs.version }}
+    secrets:
+      AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}

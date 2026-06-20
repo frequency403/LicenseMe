@@ -1,0 +1,46 @@
+name: Reusable – AUR Deploy
+
+on:
+  workflow_call:
+    inputs:
+      package-name:
+        required: true
+        type: string
+      pkgver:
+        required: true
+        type: string
+      artifact-name:
+        type: string
+        default: ''
+    secrets:
+      AUR_SSH_PRIVATE_KEY:
+        required: true
+
+jobs:
+  aur:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download binary artifact
+        if: inputs.artifact-name != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ./dist
+
+      - name: Update pkgver in PKGBUILD
+        run: |
+          sed -i "s/^pkgver=.*/pkgver=${{ inputs.pkgver }}/" \
+            aur/${{ inputs.package-name }}/PKGBUILD
+
+      - name: Deploy to AUR
+        uses: KSXGitHub/github-actions-deploy-aur@v3
+        with:
+          pkgname: ${{ inputs.package-name }}
+          pkgbuild: ./aur/${{ inputs.package-name }}/PKGBUILD
+          commit_username: frequency403
+          commit_email: frequency403@users.noreply.github.com
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "chore: update to ${{ inputs.pkgver }}"
+          force_push: true

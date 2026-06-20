@@ -1,0 +1,45 @@
+name: Reusable – Build
+
+on:
+  workflow_call:
+    inputs:
+      project:
+        required: true
+        type: string
+      rid:
+        required: true
+        type: string
+      artifact-name:
+        required: true
+        type: string
+      dotnet-version:
+        type: string
+        default: '10.0.x'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+
+      - name: Publish
+        run: >
+          dotnet publish ${{ inputs.project }}
+          --configuration Release
+          --runtime ${{ inputs.rid }}
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:DebugType=none
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          --output ./publish/${{ inputs.rid }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ./publish/${{ inputs.rid }}/
+          retention-days: 7

@@ -1,0 +1,25 @@
+name: Reusable – Winget Deploy
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+    secrets:
+      WINGET_TOKEN:
+        required: true
+# TODO: This job is wrong
+jobs:
+  winget:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish to Winget
+        uses: vedantmgoyal9/winget-releaser@latest
+        with:
+          identifier: frequency403.LicenseMeGui
+          version: ${{ inputs.version }}
+          release-tag: gui/v${{ inputs.version }}
+          token: ${{ secrets.WINGET_TOKEN }}

@@ -1,0 +1,91 @@
+name: Release – Avalonia GUI
+
+on:
+  push:
+    tags: [ 'gui/v*' ]
+
+jobs:
+  extract-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - id: ver
+        run: echo "version=${GITHUB_REF#refs/tags/gui/v}" >> $GITHUB_OUTPUT
+
+  test:
+    uses: ./.github/workflows/reusable-test.yml
+
+  build-linux:
+    needs: [ test, extract-version ]
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      project: src/LicenseMe.Avalonia/LicenseMe.Avalonia.csproj
+      rid: linux-x64
+      artifact-name: license-me-gui-linux-x64
+
+  build-windows:
+    needs: [ test, extract-version ]
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      project: src/LicenseMe.Avalonia/LicenseMe.Avalonia.csproj
+      rid: win-x64
+      artifact-name: license-me-gui-win-x64
+
+  release:
+    needs: [ extract-version, build-linux, build-windows ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: ./dist
+
+      - name: Archive binaries
+        run: |
+          cd dist
+          VERSION="${{ needs.extract-version.outputs.version }}"
+          tar -czf ../license-me-gui-linux-x64-${VERSION}.tar.gz \
+              -C license-me-gui-linux-x64 .
+          zip -j ../license-me-gui-win-x64-${VERSION}.zip \
+              license-me-gui-win-x64/*
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "GUI v${{ needs.extract-version.outputs.version }}"
+          generate_release_notes: true
+          files: |
+            license-me-gui-linux-x64-*.tar.gz
+            license-me-gui-win-x64-*.zip
+
+  aur-bin:
+    needs: [ extract-version, release ]
+    uses: ./.github/workflows/reusable-aur-deploy.yml
+    with:
+      package-name: license-me-gui-bin
+      pkgver: ${{ needs.extract-version.outputs.version }}
+      artifact-name: license-me-gui-linux-x64
+    secrets:
+      AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+
+  aur-git:
+    needs: [ extract-version, test ]
+    uses: ./.github/workflows/reusable-aur-deploy.yml
+    with:
+      package-name: license-me-gui-git
+      pkgver: ${{ needs.extract-version.outputs.version }}
+    secrets:
+      AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+
+  winget:
+    needs: [ extract-version, release ]
+    uses: ./.github/workflows/reusable-winget-deploy.yml
+    with:
+      version: ${{ needs.extract-version.outputs.version }}
+    secrets:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}

@@ -1,0 +1,35 @@
+# Maintainer: Oliver Schantz <frequency403@users.noreply.github.com>
+pkgname=license-me-gui-git
+pkgver=r0.g0000000
+pkgrel=1
+pkgdesc="Avalonia GUI for managing LICENSE and README files in git repositories (git)"
+arch=('x86_64')
+url="https://github.com/frequency403/LicenseMe"
+license=('MIT')
+provides=('license-me-gui')
+conflicts=('license-me-gui-bin')
+makedepends=('dotnet-sdk>=10')
+depends=('libx11' 'libxrandr' 'libxinerama' 'libxcursor' 'libxi')
+source=("${pkgname}::git+https://github.com/frequency403/LicenseMe.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "${pkgname}"
+    printf "r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+    cd "${pkgname}"
+    dotnet publish src/LicenseMe.Avalonia/LicenseMe.Avalonia.csproj \
+        --configuration Release \
+        --runtime linux-x64 \
+        --self-contained true \
+        -p:PublishSingleFile=true \
+        -p:DebugType=none \
+        --output ./publish
+}
+
+package() {
+    install -Dm755 "${srcdir}/${pkgname}/publish/LicenseMeGui" \
+        "${pkgdir}/usr/bin/license-me-gui"
+}

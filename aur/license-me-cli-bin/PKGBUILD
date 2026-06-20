@@ -1,0 +1,16 @@
+# Maintainer: Oliver Schantz <frequency403@users.noreply.github.com>
+pkgname=license-me-cli-bin
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="CLI tool to manage LICENSE and README files in git repositories (pre-built)"
+arch=('x86_64')
+url="https://github.com/frequency403/LicenseMe"
+license=('MIT')
+provides=('license-me-cli')
+conflicts=('license-me-cli-git')
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/frequency403/LicenseMe/releases/download/cli/v${pkgver}/license-me-cli-linux-x64-${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+    install -Dm755 "${srcdir}/license-me" "${pkgdir}/usr/bin/license-me"
+}
