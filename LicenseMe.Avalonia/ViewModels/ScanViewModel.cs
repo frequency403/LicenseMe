@@ -10,26 +10,23 @@ namespace LicenseMe.Avalonia.ViewModels;
 public sealed class ScanViewModel : ViewModelBase
 {
     private readonly IRepositoryScanner _scanner;
-    private string _scanRoot = string.Empty;
-    private bool _isScanning;
-    private DiscoveredRepository? _selectedRepository;
 
     public string ScanRoot
     {
-        get => _scanRoot;
-        set => this.RaiseAndSetIfChanged(ref _scanRoot, value);
-    }
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = string.Empty;
 
     public bool IsScanning
     {
-        get => _isScanning;
-        set => this.RaiseAndSetIfChanged(ref _isScanning, value);
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
     public DiscoveredRepository? SelectedRepository
     {
-        get => _selectedRepository;
-        set => this.RaiseAndSetIfChanged(ref _selectedRepository, value);
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
     public ObservableCollection<DiscoveredRepository> Repositories { get; } = [];

@@ -4,9 +4,6 @@
     <AssemblyName>LicenseMeGui</AssemblyName>
     <RootNamespace>LicenseMe.Avalonia</RootNamespace>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <PublishSingleFile>true</PublishSingleFile>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <DebugType>none</DebugType>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\LicenseMe.Core\LicenseMe.Core.csproj" />

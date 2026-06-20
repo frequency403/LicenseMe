@@ -4,7 +4,6 @@ using LicenseMe.Cli.Infrastructure;
 using LicenseMe.Core.Extensions;
 using LicenseMe.Core.Services;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Spectre.Console.Cli;
 
