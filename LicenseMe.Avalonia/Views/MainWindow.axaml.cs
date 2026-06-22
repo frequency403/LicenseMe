@@ -1,8 +1,9 @@
-using Avalonia.Controls;
+using Avalonia.ReactiveUI;
+using LicenseMe.Avalonia.ViewModels;
 
 namespace LicenseMe.Avalonia.Views;
 
-public sealed partial class MainWindow : Window
+public sealed partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 {
     public MainWindow() => InitializeComponent();
 }

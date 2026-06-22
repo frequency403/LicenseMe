@@ -1,20 +1,64 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:LicenseMe.Avalonia.ViewModels"
-        xmlns:views="using:LicenseMe.Avalonia.Views"
+        xmlns:materialIcons="using:Material.Icons.Avalonia"
+        xmlns:avalonia="clr-namespace:LicenseMe.Avalonia"
+        xmlns:i="using:Avalonia.Xaml.Interactivity"
+        xmlns:behaviors="using:LicenseMe.Avalonia.Behaviors"
         x:Class="LicenseMe.Avalonia.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="LicenseMe"
+        Title="{Binding Title}"
         Width="1000" Height="680"
         MinWidth="700" MinHeight="480">
-    <Grid RowDefinitions="*,Auto">
-        <TabControl Grid.Row="0">
-            <TabItem Header="Scan">
-                <views:ScanView DataContext="{Binding ScanVm}" />
-            </TabItem>
-            <TabItem Header="Settings">
-                <views:SettingsView DataContext="{Binding SettingsVm}" />
-            </TabItem>
-        </TabControl>
-    </Grid>
+    <SplitView
+        x:Name="SplitView"
+        IsPaneOpen="{Binding IsExpanded}"
+        CompactPaneLength="{Binding CompactPaneLength}"
+        OpenPaneLength="{Binding OpenPaneLength}"
+        DisplayMode="CompactInline">
+        <SplitView.Pane>
+            <DockPanel>
+                <Button DockPanel.Dock="Top" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" Command="{Binding ToggleExpandedCommand}">
+                    <Button.Content>
+                        <StackPanel>
+                            <Panel IsVisible="{Binding !IsExpanded}">
+                                <materialIcons:MaterialIconExt Kind="ArrowRight" />
+                            </Panel>
+                            <Panel IsVisible="{Binding IsExpanded}">
+                                <materialIcons:MaterialIconExt Kind="ArrowLeft" />
+                            </Panel>
+                        </StackPanel>
+                    </Button.Content>
+                </Button>
+                <ListBox ItemsSource="{Binding Views}" SelectionMode="Single"
+                         SelectedItem="{Binding CurrentPage}">
+                    <i:Interaction.Behaviors>
+                        <behaviors:PaneLengthMeasureBehavior />
+                    </i:Interaction.Behaviors>
+                    <ListBox.ItemContainerTheme>
+                        <ControlTheme TargetType="ListBoxItem"
+                                      BasedOn="{StaticResource {x:Type ListBoxItem}}"
+                                      x:DataType="avalonia:ViewRegistration">
+                            <Setter Property="IsEnabled" Value="{Binding !IsShown}"/>
+                        </ControlTheme>
+                    </ListBox.ItemContainerTheme>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="avalonia:ViewRegistration">
+                            <Grid ColumnDefinitions="Auto Auto *" ColumnSpacing="10" IsEnabled="{Binding !IsShown}">
+                                <materialIcons:MaterialIcon Grid.Column="0" HorizontalAlignment="Stretch" IconSize="24"  Kind="{Binding IconKind}"/>
+                                <TextBlock Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" Text="{Binding DisplayName}" FontWeight="Light"/>
+                                <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                           Text="{Binding Description}"
+                                           IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).IsExpanded}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+            
+        </SplitView.Pane>
+        <SplitView.Content>
+            <ContentControl Content="{Binding CurrentPage?.Instance}"/>
+        </SplitView.Content>
+    </SplitView>
 </Window>

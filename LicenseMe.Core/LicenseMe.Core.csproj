@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="Dapper" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
     <PackageReference Include="OpenSourceInitiative.LicenseApi" />
     <PackageReference Include="LibGit2Sharp" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />

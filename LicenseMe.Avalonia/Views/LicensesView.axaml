@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:viewModels="clr-namespace:LicenseMe.Avalonia.ViewModels"
+             xmlns:models="clr-namespace:OpenSourceInitiative.LicenseApi.Models;assembly=OpenSourceInitiative.LicenseApi"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="viewModels:LicensesViewModel"
+             x:Class="LicenseMe.Avalonia.Views.LicensesView">
+    <UserControl.Styles>
+        <Style Selector="avalonia|MaterialIconText.good">
+            <Setter Property="Foreground" Value="{DynamicResource HighlightColor}" />
+            <Setter Property="Text" Value="Internet available"/>
+        </Style>
+        <Style Selector="avalonia|MaterialIconText.bad">
+            <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+            <Setter Property="Text" Value="Internet not available"/>
+        </Style>
+        <Style Selector="avalonia|MaterialIconText.animated">
+            <Setter Property="Animation" Value="SpinCcw" />
+            <Setter Property="Kind" Value="Sync" />
+        </Style>
+        <Style Selector="avalonia|MaterialIconText.freezed">
+            <Setter Property="Kind" Value="SetNull" />
+            <Setter Property="Animation" Value="None" />
+        </Style>
+    </UserControl.Styles>
+    <Grid RowDefinitions="Auto * Auto">
+        <Grid Grid.Row="0" ColumnDefinitions="* Auto">
+            <TextBlock Grid.Column="0" HorizontalAlignment="Center" Text="Licenses Overview" />
+            <Button Grid.Column="1" Content="{avalonia:MaterialIconExt RefreshCircle}"
+                    Foreground="{DynamicResource HighlightColor}" Command="{Binding GetLicensesCommand}" />
+        </Grid>
+        <DataGrid Grid.Row="1" ItemsSource="{Binding Licenses}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" IsReadOnly="True" CanUserSort="True" CanUserReorder="False" CanUserResize="True" />
+                <DataGridTextColumn Header="SPDX ID" Binding="{Binding SpdxId}" Width="*" IsReadOnly="True" CanUserSort="True" CanUserReorder="False" CanUserResize="True" />
+            </DataGrid.Columns>
+        </DataGrid>
+        <Grid Grid.Row="2" ColumnDefinitions="* *">
+            <avalonia:MaterialIconText Grid.Column="0" Classes.good="{Binding HasInternetConnection}"
+                                       Classes.bad="{Binding !HasInternetConnection}" HorizontalAlignment="Left"
+                                       HorizontalContentAlignment="Center" Kind="LanCheck" />
+            <avalonia:MaterialIconText Grid.Column="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                       Classes.animated="{Binding IsSearching}"
+                                       Classes.freezed="{Binding !IsSearching}"
+                                       Text="{Binding ProgressReporter.ReportedProgress}"
+                                       />
+        
+        </Grid>
+    </Grid>
+</UserControl>

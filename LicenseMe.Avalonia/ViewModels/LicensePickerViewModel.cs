@@ -48,7 +48,7 @@ public sealed class LicensePickerViewModel : ViewModelBase
         Licenses.Clear();
         try
         {
-            await foreach (var license in _osiClient.GetAllLicensesAsyncEnumerable())
+            await foreach (var license in _osiClient.GetAllLicensesAsyncEnumerable(ct))
             {
                 ct.ThrowIfCancellationRequested();
                 if (license is not null) Licenses.Add(license);

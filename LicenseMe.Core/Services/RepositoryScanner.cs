@@ -1,18 +1,29 @@
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using LibGit2Sharp;
 using LicenseMe.Core.Domain.Models;
 using LicenseMe.Core.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace LicenseMe.Core.Services;
 
 public sealed class RepositoryScanner(
+    [FromKeyedServices("RepositoryReporter")] IProgressReporter<string> progressReporter,
     ILicenseFileDetector licenseDetector,
     IReadmeFileDetector readmeDetector,
     IOptions<LicenseMeConfig> options,
     ILogger<RepositoryScanner> logger) : IRepositoryScanner
 {
+    
+    private static readonly EnumerationOptions EnumerationOptions = new()
+    {
+        IgnoreInaccessible = true,
+        ReturnSpecialDirectories = false,
+        RecurseSubdirectories = false,
+    };
+    
     public async IAsyncEnumerable<DiscoveredRepository> ScanAsync(
         string rootPath,
         [EnumeratorCancellation] CancellationToken ct = default)
@@ -21,7 +32,7 @@ public sealed class RepositoryScanner(
 
         await foreach (var repoPath in EnumerateReposAsync(rootPath, 0, config.MaxScanDepth, ct))
         {
-            if (IsExcluded(repoPath, config.ExcludedPaths))
+            if (IsExcluded(repoPath))
                 continue;
 
             licenseDetector.TryDetect(repoPath, out var licensePath);
@@ -43,44 +54,44 @@ public sealed class RepositoryScanner(
         int? maxDepth,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        if (maxDepth.HasValue && depth > maxDepth.Value)
+        if (depth > maxDepth)
             yield break;
 
         ct.ThrowIfCancellationRequested();
-
-        IEnumerable<string> subDirs;
-        try
+        var channel = Channel.CreateUnbounded<string>();
+        
+        _ = Task.Run(async () =>
         {
-            subDirs = Directory.EnumerateDirectories(path);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            logger.LogDebug("Access denied scanning {Path}: {Message}", path, ex.Message);
-            yield break;
-        }
-        catch (IOException ex)
-        {
-            logger.LogDebug("IO error scanning {Path}: {Message}", path, ex.Message);
-            yield break;
-        }
-
-        foreach (var dir in subDirs)
-        {
-            ct.ThrowIfCancellationRequested();
-
-            if (Repository.IsValid(dir))
+            try
             {
-                // Do not recurse into a repo – submodules are separate concerns
-                yield return dir;
-                continue;
-            }
+                foreach (var dir in Directory.EnumerateDirectories(path, "*", EnumerationOptions))
+                {
+                    progressReporter.TryUpdateProgress(dir);
+                    ct.ThrowIfCancellationRequested();
 
-            await foreach (var nested in EnumerateReposAsync(dir, depth + 1, maxDepth, ct))
-                yield return nested;
-        }
+                    if (Repository.IsValid(dir))
+                    {
+                        logger.LogDebug("Found repository at {Path}", dir);
+                        // Do not recurse into a repo – submodules are separate concerns
+                        channel.Writer.TryWrite(dir);
+                        continue;
+                    }
+
+                    await foreach (var nested in EnumerateReposAsync(dir, depth + 1, maxDepth, ct))
+                        channel.Writer.TryWrite(nested);
+                }
+            }
+            finally
+            {
+                channel.Writer.Complete();
+            }
+        }, ct);
+        
+        await foreach(var dir in channel.Reader.ReadAllAsync(ct))
+            yield return dir;
     }
 
-    private static bool IsExcluded(string path, IEnumerable<string> excludedPaths)
-        => excludedPaths.Any(excluded =>
+    private bool IsExcluded(string path)
+        => options.Value.ExcludedPaths.Any(excluded =>
             path.StartsWith(excluded, StringComparison.OrdinalIgnoreCase));
 }

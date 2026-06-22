@@ -7,12 +7,17 @@ namespace LicenseMe.Core.Services;
 
 public sealed class ConfigManager : IConfigManager
 {
-    public static string ConfigPath { get; } = BuildConfigPath();
+    public static string ConfigBasePath { get; } = BuildConfigPath();
+    public static string ConfigPath { get; } = Path.Combine(ConfigBasePath, "config.json");
 
     public async Task<LicenseMeConfig> LoadAsync(CancellationToken ct = default)
     {
         if (!File.Exists(ConfigPath))
-            return LicenseMeConfig.Default;
+        {
+            var defaultConfig = LicenseMeConfig.Default;
+            await SaveAsync(defaultConfig, ct);
+            return defaultConfig;
+        }
 
         await using var stream = File.OpenRead(ConfigPath);
         return await JsonSerializer.DeserializeAsync(
@@ -22,22 +27,19 @@ public sealed class ConfigManager : IConfigManager
 
     public async Task SaveAsync(LicenseMeConfig config, CancellationToken ct = default)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-        await using var stream = File.Open(ConfigPath, FileMode.Create);
+        await using var stream = File.Open(ConfigPath, FileMode.OpenOrCreate);
         await JsonSerializer.SerializeAsync(
             stream, config, LicenseMeConfigJsonContext.Default.LicenseMeConfig, ct);
     }
 
     private static string BuildConfigPath()
     {
-        var basePath = OperatingSystem.IsWindows()
-            ? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-            : Path.Combine(
-                Environment.GetEnvironmentVariable("XDG_CONFIG_HOME")
-                ?? Path.Combine(Environment.GetFolderPath(
-                    Environment.SpecialFolder.UserProfile), ".config"));
-
-        return Path.Combine(basePath, "licenseme", "config.json");
+        var basePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData,
+                Environment.SpecialFolderOption.Create), AppDomain.CurrentDomain.FriendlyName.ToLower().Trim(' '));
+        if(!Directory.Exists(basePath))
+            Directory.CreateDirectory(basePath);
+        return basePath;
     }
 }
 

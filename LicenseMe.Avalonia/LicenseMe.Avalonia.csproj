@@ -6,6 +6,14 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport" />
+    <PackageReference Include="Material.Icons" />
+    <PackageReference Include="Material.Icons.Avalonia" />
+    <PackageReference Include="ReactiveUI.SourceGenerators">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Xaml.Behaviors.Interactivity" />
     <ProjectReference Include="..\LicenseMe.Core\LicenseMe.Core.csproj" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Controls.DataGrid" />

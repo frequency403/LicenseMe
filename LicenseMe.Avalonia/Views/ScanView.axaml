@@ -1,18 +1,28 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:LicenseMe.Avalonia.ViewModels"
+             xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:Class="LicenseMe.Avalonia.Views.ScanView"
              x:DataType="vm:ScanViewModel">
     <Grid RowDefinitions="Auto,*,Auto" Margin="12">
         <!-- Path row -->
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,8">
             <TextBox Grid.Column="0" Text="{Binding ScanRoot}"
-                     Watermark="Root path to scan…" />
+                     PlaceholderText="Root path to scan…" />
             <Button Grid.Column="1" Content="Browse"
-                    Command="{Binding BrowseCommand}" Margin="4,0,0,0" />
-            <Button Grid.Column="2" Content="Scan"
-                    Command="{Binding ScanCommand}" Margin="4,0,0,0"
-                    Classes="accent" />
+                    Command="{Binding ExecuteBrowseCommand}" Margin="4,0,0,0" />
+            <StackPanel Grid.Column="2">
+                <Button  Content="Scan"
+                         IsVisible="{Binding !IsScanning}"
+                         Command="{Binding ExecuteScanCommand}" Margin="4,0,0,0"
+                         Classes="accent" />
+                <Button  Content="Cancel"
+                         IsVisible="{Binding IsScanning}"
+                         Command="{Binding CancelScanCommand}" Margin="4,0,0,0"
+                         Classes="accent" />
+            </StackPanel>
+            
+            
         </Grid>
 
         <!-- Results -->
@@ -22,15 +32,19 @@
                   IsReadOnly="True"
                   AutoGenerateColumns="False">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Name"     Binding="{Binding Name}"     Width="200" />
-                <DataGridTextColumn Header="License"  Binding="{Binding HasLicense}" Width="80" />
-                <DataGridTextColumn Header="README"   Binding="{Binding HasReadme}"  Width="80" />
-                <DataGridTextColumn Header="Path"     Binding="{Binding FullPath}"  Width="*" />
+                <DataGridTextColumn Header="Name"     Binding="{Binding Name}"     Width="2*" CanUserSort="True"/>
+                <DataGridTextColumn Header="License"  Binding="{Binding HasLicense}" Width="*" CanUserSort="True"/>
+                <DataGridTextColumn Header="README"   Binding="{Binding HasReadme}"  Width="*" CanUserSort="True"/>
+                <DataGridTextColumn Header="Path"     Binding="{Binding FullPath}"  Width="3*" CanUserSort="True"/>
             </DataGrid.Columns>
         </DataGrid>
 
         <!-- Status -->
-        <ProgressBar Grid.Row="2" IsIndeterminate="True" Margin="0,8,0,0"
-                     IsVisible="{Binding IsScanning}" />
+        <avalonia:MaterialIconText Grid.Row="2" Orientation="Horizontal"  Kind="Sync"
+                                   Foreground="{DynamicResource HighlightColor}"
+                                   IsVisible="{Binding IsScanning}" 
+                                   Margin="0,8,0,0" Spacing="10"
+                                   HorizontalAlignment="Left" Animation="SpinCcw"
+                                   Text="{Binding ProgressReporter?.ReportedProgress}" /> 
     </Grid>
 </UserControl>

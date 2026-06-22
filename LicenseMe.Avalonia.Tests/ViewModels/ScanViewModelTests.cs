@@ -11,6 +11,7 @@ namespace LicenseMe.Avalonia.Tests.ViewModels;
 public sealed class ScanViewModelTests
 {
     private readonly IRepositoryScanner _scannerMock = Substitute.For<IRepositoryScanner>();
+    private readonly IProgressReporter<string> _progressReporterMock = Substitute.For<IProgressReporter<string>>();
 
     [Fact]
     public async Task ScanCommand_PopulatesRepositories()
@@ -21,12 +22,12 @@ public sealed class ScanViewModelTests
         _scannerMock.ScanAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(ToAsyncEnumerable(expected));
 
-        var sut = new ScanViewModel(_scannerMock)
+        var sut = new ScanViewModel(_scannerMock, _progressReporterMock)
         {
             ScanRoot = "/home/user"
         };
 
-        await sut.ScanCommand.Execute();
+        await sut.ExecuteScanCommand.Execute();
 
         sut.Repositories.ShouldHaveSingleItem();
         sut.Repositories[0].ShouldBe(expected);
@@ -35,13 +36,13 @@ public sealed class ScanViewModelTests
     [Fact]
     public void ScanCommand_CannotExecute_WhenScanRootIsEmpty()
     {
-        var sut = new ScanViewModel(_scannerMock)
+        var sut = new ScanViewModel(_scannerMock, _progressReporterMock)
         {
             ScanRoot = string.Empty
         };
 
         var canExecute = false;
-        sut.ScanCommand.CanExecute.Subscribe(v => canExecute = v);
+        sut.ExecuteScanCommand.CanExecute.Subscribe(v => canExecute = v);
 
         canExecute.ShouldBeFalse();
     }
