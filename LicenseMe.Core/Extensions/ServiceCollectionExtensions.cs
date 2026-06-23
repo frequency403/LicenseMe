@@ -1,8 +1,10 @@
 using System.Net.Http.Headers;
 using System.Reflection;
+using LicenseMe.Core.Cache;
 using LicenseMe.Core.Domain.Models;
 using LicenseMe.Core.Interfaces;
 using LicenseMe.Core.Services;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenSourceInitiative.LicenseApi.Extensions;
@@ -27,9 +29,10 @@ public static class ServiceCollectionExtensions
             var configSection = configuration.GetSection("LicenseMe");
             services.Configure<LicenseMeConfig>(configSection);
 
+            services.AddSqliteDistributedCache();
             services.AddOsiLicensesClient(options =>
             {
-                options.EnableCaching = false;
+                options.EnableCaching = true;
                 options.UserAgent =
                 [
                     new ProductInfoHeaderValue(AppDomain.CurrentDomain.FriendlyName.ToLower(),
@@ -44,6 +47,21 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<IReadmeWriter, ReadmeWriter>();
             services.AddSingleton<IConfigManager, ConfigManager>();
 
+            return services;
+        }
+        
+        public IServiceCollection AddSqliteDistributedCache(
+            Action<SqliteCacheOptions>? configure = null)
+        {
+            var options = new SqliteCacheOptions();
+            if(configure is not null)
+                configure(options);
+            else
+            {
+                options.EnableWalMode = true;
+                options.DatabasePath = Path.Combine(ConfigManager.ConfigBasePath, AppDomain.CurrentDomain.FriendlyName.ToLower() + ".db");
+            }
+            services.AddSingleton<IDistributedCache>(_ => new SqliteDistributedCache(options));
             return services;
         }
     }
