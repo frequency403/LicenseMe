@@ -4,7 +4,6 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:viewModels="clr-namespace:LicenseMe.Avalonia.ViewModels"
-             xmlns:models="clr-namespace:OpenSourceInitiative.LicenseApi.Models;assembly=OpenSourceInitiative.LicenseApi"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="viewModels:LicensesViewModel"
              x:Class="LicenseMe.Avalonia.Views.LicensesView">
@@ -26,28 +25,48 @@
             <Setter Property="Animation" Value="None" />
         </Style>
     </UserControl.Styles>
-    <Grid RowDefinitions="Auto * Auto">
-        <Grid Grid.Row="0" ColumnDefinitions="* Auto">
-            <TextBlock Grid.Column="0" HorizontalAlignment="Center" Text="Licenses Overview" />
-            <Button Grid.Column="1" Content="{avalonia:MaterialIconExt RefreshCircle}"
+    <Grid RowDefinitions="Auto * Auto" ColumnDefinitions="* 2.5*" RowSpacing="10">
+        <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" ColumnDefinitions="* *" RowDefinitions="* Auto">
+            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"  HorizontalAlignment="Center" VerticalAlignment="Stretch" Text="Licenses Overview" />
+            <Button Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" Content="{avalonia:MaterialIconExt RefreshCircle}"
                     Foreground="{DynamicResource HighlightColor}" Command="{Binding GetLicensesCommand}" />
+            <Separator Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Stretch" VerticalAlignment="Bottom"/>
         </Grid>
-        <DataGrid Grid.Row="1" ItemsSource="{Binding Licenses}">
+            
+    
+        <DataGrid Grid.Column="0" Grid.Row="1" 
+                  ItemsSource="{Binding Licenses}" 
+                  SelectedItem="{Binding SelectedLicense}" 
+                  SelectionMode="Single" RowDetailsVisibilityMode="Collapsed">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" IsReadOnly="True" CanUserSort="True" CanUserReorder="False" CanUserResize="True" />
-                <DataGridTextColumn Header="SPDX ID" Binding="{Binding SpdxId}" Width="*" IsReadOnly="True" CanUserSort="True" CanUserReorder="False" CanUserResize="True" />
+                <DataGridTextColumn Header="#"
+                                    Binding="{Binding $parent[DataGridRow].Index}"
+                                    Width="60" IsReadOnly="True" />
+                <DataGridTextColumn Header="SPDX ID" Width="*" IsReadOnly="True">
+                    <DataGridTextColumn.Binding>
+                        <MultiBinding StringFormat="{}{0} Version: {1}">
+                            <Binding Path="SpdxId"/>
+                            <Binding Path="Version"/>
+                        </MultiBinding>
+                    </DataGridTextColumn.Binding>
+                </DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
-        <Grid Grid.Row="2" ColumnDefinitions="* *">
-            <avalonia:MaterialIconText Grid.Column="0" Classes.good="{Binding HasInternetConnection}"
+        
+        <ScrollViewer Grid.Row="1" Grid.Column="1" 
+                      IsVisible="{Binding SelectedLicense, 
+                      Converter={x:Static ObjectConverters.IsNotNull}}" 
+                      Content="{Binding SelectedLicense}" />
+        
+        
+            <avalonia:MaterialIconText Grid.Row="2" Grid.Column="0" Classes.good="{Binding HasInternetConnection}"
                                        Classes.bad="{Binding !HasInternetConnection}" HorizontalAlignment="Left"
                                        HorizontalContentAlignment="Center" Kind="LanCheck" />
-            <avalonia:MaterialIconText Grid.Column="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+            <avalonia:MaterialIconText Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                        Classes.animated="{Binding IsSearching}"
                                        Classes.freezed="{Binding !IsSearching}"
                                        Text="{Binding ProgressReporter.ReportedProgress}"
                                        />
         
-        </Grid>
     </Grid>
 </UserControl>

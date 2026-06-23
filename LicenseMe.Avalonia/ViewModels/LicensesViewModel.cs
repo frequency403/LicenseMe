@@ -12,6 +12,7 @@ public partial class LicensesViewModel : ViewModelBase
 {
     [Reactive] private bool _isSearching;
     [Reactive] private bool _hasInternetConnection;
+    [Reactive] private OsiLicense _selectedLicense;
     
     private CancellationTokenSource? _cancellationTokenSource;
     private readonly ILogger<LicensesViewModel> _logger;

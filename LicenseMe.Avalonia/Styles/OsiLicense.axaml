@@ -1,0 +1,11 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="clr-namespace:OpenSourceInitiative.LicenseApi.Models;assembly=OpenSourceInitiative.LicenseApi">
+    <Style Selector="models|OsiLicense">
+        <DataTemplate DataType="models:OsiLicense">
+            <Grid ColumnDefinitions="* *" RowDefinitions="* * * * *">
+                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="Heavy" Text="{Binding Name}"/>
+            </Grid>
+        </DataTemplate>
+    </Style>
+</Styles>
