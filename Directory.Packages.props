@@ -17,6 +17,7 @@
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.9" />
+    <PackageVersion Include="ReactiveUI.Avalonia" Version="12.0.3" />
     <PackageVersion Include="ReactiveUI.SourceGenerators" Version="3.1.0" />
     <PackageVersion Include="Xaml.Behaviors.Interactivity" Version="12.0.0.1" />
   </ItemGroup>

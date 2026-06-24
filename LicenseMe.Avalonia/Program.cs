@@ -1,5 +1,5 @@
 using Avalonia;
-using Avalonia.ReactiveUI;
+using Avalonia.Input.Platform;
 using LicenseMe.Avalonia.Extensions;
 using LicenseMe.Avalonia.ViewModels;
 using LicenseMe.Avalonia.Views;
@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
+using ReactiveUI.Avalonia;
 
 namespace LicenseMe.Avalonia;
 
@@ -28,9 +29,13 @@ public class Program
             {
                 svc.AddLicenseMeCore(ctx.Configuration);
                 svc.AddSingleton<App>();
+                svc.AddSingleton<ExceptionHandler>();
                 svc.AddKeyedSingleton<IProgressReporter<string>, ReactiveProgressReporter<string>>("RepositoryReporter");
                 svc.AddKeyedSingleton<IProgressReporter<string>, ReactiveProgressReporter<string>>("LicenseReporter");
                 svc.AddSingleton<MainWindowViewModel>();
+
+                svc.AddSingleton<MainWindow>();
+                svc.AddTransient<IClipboard>(sp => sp.GetRequiredService<MainWindow>().Clipboard ?? throw new InvalidOperationException("MainWindow not found"));
 
                 svc.RegisterViewWithViewModel<ScanView, ScanViewModel>(displayName: "Scan",
                     description: "Scan for licenses", iconKind: MaterialIconKind.Scan, isDefault: true, lifetime: ServiceLifetime.Singleton);
@@ -38,6 +43,10 @@ public class Program
                     description: "Application settings", iconKind: MaterialIconKind.Settings);
                 svc.RegisterViewWithViewModel<LicensesView, LicensesViewModel>(displayName: "Licenses",
                     description: "View licenses", iconKind: MaterialIconKind.License, lifetime: ServiceLifetime.Singleton);
+
+                svc.AddHttpClient<LicensesViewModel>()
+                    .RemoveAllLoggers()
+                    .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(3));
             })
             .ConfigureLogging((_, builder) =>
             {
@@ -52,11 +61,20 @@ public class Program
             })
             .Build();
 
-        var appBuilder = AppBuilder.Configure(() => host.Services.GetRequiredService<App>())
+        var app = host.Services.GetRequiredService<App>();
+        var exceptionHandler = host.Services.GetRequiredService<ExceptionHandler>();
+        
+        var appBuilder = AppBuilder.Configure(() => app)
             .UsePlatformDetect()
             .WithInterFont()
             .LogToTrace()
-            .UseReactiveUI();
+            .UseReactiveUI(configure =>
+            {
+                configure
+                    .WithPlatformServices()
+                    .WithAvalonia()
+                    .WithExceptionHandler(exceptionHandler);
+            });
         
         await host.StartAsync(mainCancellationTokenSource.Token);
         appBuilder.StartWithClassicDesktopLifetime(args);

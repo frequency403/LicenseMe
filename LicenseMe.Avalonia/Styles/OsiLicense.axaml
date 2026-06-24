@@ -1,11 +1,301 @@
-<Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:models="clr-namespace:OpenSourceInitiative.LicenseApi.Models;assembly=OpenSourceInitiative.LicenseApi">
-    <Style Selector="models|OsiLicense">
-        <DataTemplate DataType="models:OsiLicense">
-            <Grid ColumnDefinitions="* *" RowDefinitions="* * * * *">
-                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="Heavy" Text="{Binding Name}"/>
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="clr-namespace:OpenSourceInitiative.LicenseApi.Models;assembly=OpenSourceInitiative.LicenseApi"
+                    xmlns:avalonia="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+                    xmlns:converters="clr-namespace:LicenseMe.Avalonia.Converters"
+                    xmlns:vm="clr-namespace:LicenseMe.Avalonia.ViewModels">
+
+    <x:Double x:Key="License.FontSize.Title">18</x:Double>
+    <x:Double x:Key="License.FontSize.Detail">11</x:Double>
+    <x:Double x:Key="License.Icon.Size">15</x:Double>
+    <x:Double x:Key="License.LicenseText.MaxHeight">300</x:Double>
+    <CornerRadius x:Key="License.CornerRadius.Badge">4</CornerRadius>
+    <CornerRadius x:Key="License.CornerRadius.Chip">12</CornerRadius>
+
+    <DataTemplate x:Key="OsiLicenseTemplate" DataType="models:OsiLicense">
+        <StackPanel Spacing="12" Margin="16,12" HorizontalAlignment="Stretch">
+
+            <!-- Name + Approval badge -->
+            <Grid ColumnDefinitions="* Auto" RowDefinitions="Auto Auto">
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Text="{Binding Name}"
+                           FontSize="{DynamicResource License.FontSize.Title}" FontWeight="Bold"
+                           TextWrapping="Wrap"
+                           VerticalAlignment="Center" />
+
+                <Border Grid.Row="0" Grid.Column="1"
+                        CornerRadius="{DynamicResource License.CornerRadius.Badge}" Padding="8,4"
+                        VerticalAlignment="Top" Margin="8,0,0,0"
+                        IsVisible="{Binding Approved}"
+                        Background="{DynamicResource HighlightColor}">
+                    <avalonia:MaterialIconText Kind="CheckDecagram"
+                                               Text="OSI Approved"
+                                               Foreground="{DynamicResource SystemControlForegroundAltHighBrush}"
+                                               FontSize="{DynamicResource License.FontSize.Detail}" />
+                </Border>
+
+                <Border Grid.Row="0" Grid.Column="1"
+                        CornerRadius="{DynamicResource License.CornerRadius.Badge}" Padding="8,4"
+                        VerticalAlignment="Top" Margin="8,0,0,0"
+                        IsVisible="{Binding !Approved}"
+                        Background="{DynamicResource ErrorBrush}">
+                    <avalonia:MaterialIconText Kind="CloseCircle"
+                                               Text="Not Approved"
+                                               Foreground="{DynamicResource SystemControlForegroundAltHighBrush}"
+                                               FontSize="{DynamicResource License.FontSize.Detail}" />
+                </Border>
+
+                <!-- ID + Version + StewardVersion inline below title -->
+                <WrapPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                           Orientation="Horizontal" Margin="0,6,0,0">
+
+                    <!-- OSI ID -->
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,16,4">
+                        <avalonia:MaterialIcon Kind="Identifier"
+                                               IconSize="{DynamicResource License.Icon.Size}"
+                                               Opacity="0.5" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Id}"
+                                   FontSize="{DynamicResource License.FontSize.Detail}"
+                                   Opacity="0.5" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- SPDX ID -->
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,16,4"
+                                IsVisible="{Binding SpdxId, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <avalonia:MaterialIcon Kind="TagOutline"
+                                               IconSize="{DynamicResource License.Icon.Size}"
+                                               VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding SpdxId}"
+                                   FontSize="{DynamicResource License.FontSize.Detail}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- Version -->
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,16,4"
+                                IsVisible="{Binding Version, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <avalonia:MaterialIcon Kind="SourceBranch"
+                                               IconSize="{DynamicResource License.Icon.Size}"
+                                               VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Version}"
+                                   FontSize="{DynamicResource License.FontSize.Detail}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- Steward Version -->
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,4"
+                                IsVisible="{Binding LicenseStewardVersion, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <avalonia:MaterialIcon Kind="AccountCogOutline"
+                                               IconSize="{DynamicResource License.Icon.Size}"
+                                               VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding LicenseStewardVersion}"
+                                   FontSize="{DynamicResource License.FontSize.Detail}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+
+                </WrapPanel>
             </Grid>
-        </DataTemplate>
-    </Style>
-</Styles>
+
+            <Separator />
+
+            <!-- Submitter + Dates parallel -->
+            <Grid ColumnDefinitions="* *">
+
+                <StackPanel Grid.Column="0" Spacing="4"
+                            IsVisible="{Binding SubmitterName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <avalonia:MaterialIcon Kind="AccountArrowRightOutline"
+                                               IconSize="{DynamicResource License.Icon.Size}"
+                                               VerticalAlignment="Center" />
+                        <TextBlock Text="Submitter" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding SubmitterName}"
+                               TextWrapping="Wrap"
+                               FontSize="{DynamicResource License.FontSize.Detail}"
+                               Margin="21,0,0,0" />
+                </StackPanel>
+
+                <StackPanel Spacing="4"
+                            Grid.Column="{Binding SubmitterName, Converter={x:Static converters:Converters.StringToColumnConverter}}"
+                            Grid.ColumnSpan="{Binding SubmitterName, Converter={x:Static converters:Converters.StringToIntConverter}}">
+                    <StackPanel Orientation="Horizontal" Spacing="4"
+                                IsVisible="{Binding SubmissionDate, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <avalonia:MaterialIcon Kind="CalendarPlus"
+                                               IconSize="{DynamicResource License.Icon.Size}"
+                                               VerticalAlignment="Center" />
+                        <TextBlock Text="Submitted:" FontWeight="SemiBold" Margin="0,0,6,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding SubmissionDate, StringFormat='{}{0:yyyy-MM-dd}'}"
+                                   FontSize="{DynamicResource License.FontSize.Detail}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="4"
+                                IsVisible="{Binding ApprovalDate, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <avalonia:MaterialIcon Kind="CalendarCheck"
+                                               IconSize="{DynamicResource License.Icon.Size}"
+                                               VerticalAlignment="Center" />
+                        <TextBlock Text="Approved:" FontWeight="SemiBold" Margin="0,0,6,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding ApprovalDate, StringFormat='{}{0:yyyy-MM-dd}'}"
+                                   FontSize="{DynamicResource License.FontSize.Detail}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </StackPanel>
+
+            </Grid>
+
+            <!-- Stewards list -->
+            <StackPanel IsVisible="{Binding Stewards.Count}">
+                <Separator />
+                <Grid ColumnDefinitions="22 *" Margin="0,0,0,6">
+                    <avalonia:MaterialIcon Grid.Column="0" Kind="AccountGroupOutline"
+                                           IconSize="{DynamicResource License.Icon.Size}"
+                                           VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="Stewards:" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding Stewards}" Margin="22,0,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" Margin="0,2" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- Keywords (chips) -->
+            <StackPanel IsVisible="{Binding Keywords.Count}">
+                <Separator />
+                <Grid ColumnDefinitions="22 *" Margin="0,0,0,6">
+                    <avalonia:MaterialIcon Grid.Column="0" Kind="TagMultipleOutline"
+                                           IconSize="{DynamicResource License.Icon.Size}"
+                                           VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="Keywords:" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding Keywords}" Margin="22,0,0,0" HorizontalAlignment="Stretch">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border CornerRadius="{DynamicResource License.CornerRadius.Chip}"
+                                    Padding="8,3" Margin="0,2,6,2"
+                                    Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}">
+                                <TextBlock Text="{Binding}" FontSize="{DynamicResource License.FontSize.Detail}" />
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- License Text -->
+            <StackPanel IsVisible="{Binding LicenseText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <Separator />
+                <Grid ColumnDefinitions="22 *" Margin="0,0,0,6">
+                    <avalonia:MaterialIcon Grid.Column="0" Kind="FileDocumentOutline"
+                                           IconSize="{DynamicResource License.Icon.Size}"
+                                           VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="License Text:" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </Grid>
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource License.CornerRadius.Badge}"
+                        HorizontalAlignment="Stretch">
+                    <Grid>
+                        <ScrollViewer MaxHeight="{DynamicResource License.LicenseText.MaxHeight}"
+                                      HorizontalScrollBarVisibility="Auto"
+                                      VerticalScrollBarVisibility="Auto"
+                                      Padding="10,10,24,10">
+                            <SelectableTextBlock Text="{Binding LicenseText}"
+                                                 TextWrapping="NoWrap"
+                                                 FontFamily="Cascadia Code,Consolas,Monospace"
+                                                 FontSize="{DynamicResource License.FontSize.Detail}" />
+                        </ScrollViewer>
+
+                        <!-- Copy button overlay, top-right, visible on pointer over -->
+                        <Button HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Margin="0,4,4,0"
+                                Padding="4"
+                                Opacity="0"
+                                Command="{Binding $parent[UserControl].((vm:LicensesViewModel)DataContext).CopyLicenseToClipboardCommand}"
+                                CommandParameter="{Binding LicenseText}"
+                                ToolTip.Tip="Copy license text">
+                            <Button.Styles>
+                                <Style Selector="Border:pointerover > Grid > Button">
+                                    <Setter Property="Opacity" Value="1" />
+                                </Style>
+                            </Button.Styles>
+                            <avalonia:MaterialIcon Kind="ContentCopy"
+                                                   IconSize="{DynamicResource License.Icon.Size}" />
+                        </Button>
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <!-- Links (all human-readable + Html.Href) -->
+            <StackPanel>
+                <Separator />
+                <Grid ColumnDefinitions="22 *" Margin="0,0,0,6">
+                    <avalonia:MaterialIcon Grid.Column="0" Kind="LinkVariant"
+                                           IconSize="{DynamicResource License.Icon.Size}"
+                                           VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="Links:" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </Grid>
+
+                <WrapPanel Orientation="Horizontal" Margin="22,0,0,0">
+
+                    <!-- Html.Href – always first -->
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,2,16,2"
+                                IsVisible="{Binding Links.Html.Href, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <avalonia:MaterialIcon Kind="Web"
+                                               IconSize="{DynamicResource License.Icon.Size}"
+                                               VerticalAlignment="Center" />
+                        <HyperlinkButton Content="Web Page"
+                                         NavigateUri="{Binding Links.Html.Href}"
+                                         FontSize="{DynamicResource License.FontSize.Detail}"
+                                         VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- Submission URL -->
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,2,16,2"
+                                IsVisible="{Binding SubmissionUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <avalonia:MaterialIcon Kind="FileDocumentArrowRightOutline"
+                                               IconSize="{DynamicResource License.Icon.Size}"
+                                               VerticalAlignment="Center" />
+                        <HyperlinkButton Content="Submission"
+                                         NavigateUri="{Binding SubmissionUrl}"
+                                         FontSize="{DynamicResource License.FontSize.Detail}"
+                                         VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- Steward URL -->
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,2,16,2"
+                                IsVisible="{Binding LicenseStewardUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <avalonia:MaterialIcon Kind="AccountCogOutline"
+                                               IconSize="{DynamicResource License.Icon.Size}"
+                                               VerticalAlignment="Center" />
+                        <HyperlinkButton Content="Steward"
+                                         NavigateUri="{Binding LicenseStewardUrl}"
+                                         FontSize="{DynamicResource License.FontSize.Detail}"
+                                         VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- Board Minutes -->
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,2,0,2"
+                                IsVisible="{Binding BoardMinutes, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <avalonia:MaterialIcon Kind="ClipboardTextOutline"
+                                               IconSize="{DynamicResource License.Icon.Size}"
+                                               VerticalAlignment="Center" />
+                        <HyperlinkButton Content="Board Minutes"
+                                         NavigateUri="{Binding BoardMinutes}"
+                                         FontSize="{DynamicResource License.FontSize.Detail}"
+                                         VerticalAlignment="Center" />
+                    </StackPanel>
+
+                </WrapPanel>
+            </StackPanel>
+
+        </StackPanel>
+    </DataTemplate>
+
+</ResourceDictionary>

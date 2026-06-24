@@ -10,11 +10,10 @@ namespace LicenseMe.Avalonia;
 
 public sealed class App(ILogger<App> logger, IServiceProvider serviceProvider) : Application
 {
-
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
-        #if DEBUG
+#if DEBUG
         this.AttachDeveloperTools();
 #endif
     }
@@ -25,11 +24,11 @@ public sealed class App(ILogger<App> logger, IServiceProvider serviceProvider) :
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             logger.LogInformation("Creating main window");
-            desktop.MainWindow = new MainWindow
-            {
-                ViewModel = serviceProvider.GetRequiredService<MainWindowViewModel>()
-            };
+            var mainWindow = serviceProvider.GetRequiredService<MainWindow>();
+            mainWindow.ViewModel = serviceProvider.GetRequiredService<MainWindowViewModel>();
+            desktop.MainWindow = mainWindow;
             logger.LogInformation("Main window created");
         }
+        base.OnFrameworkInitializationCompleted();
     }
 }

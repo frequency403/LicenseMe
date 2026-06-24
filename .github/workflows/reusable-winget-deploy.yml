@@ -9,15 +9,14 @@ on:
     secrets:
       WINGET_TOKEN:
         required: true
-# TODO: This job is wrong
 jobs:
   winget:
-    runs-on: windows-latest
+    runs-on: ubuntu-slim
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Publish to Winget
-        uses: vedantmgoyal9/winget-releaser@latest
+        uses: vedantmgoyal9/winget-releaser@main
         with:
           identifier: frequency403.LicenseMeGui
           version: ${{ inputs.version }}
