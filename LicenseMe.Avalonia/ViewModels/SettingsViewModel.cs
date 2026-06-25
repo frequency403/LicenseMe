@@ -8,41 +8,36 @@ namespace LicenseMe.Avalonia.ViewModels;
 public sealed class SettingsViewModel : ViewModelBase
 {
     private readonly IConfigManager _configManager;
-    private bool _cachingEnabled = true;
-    private string? _defaultSpdxId;
-    private int? _maxScanDepth;
-    private string _newExcludedPath = string.Empty;
-    private List<string> _excludedPaths = [];
 
     public bool CachingEnabled
     {
-        get => _cachingEnabled;
-        set => this.RaiseAndSetIfChanged(ref _cachingEnabled, value);
-    }
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = true;
 
     public string? DefaultSpdxId
     {
-        get => _defaultSpdxId;
-        set => this.RaiseAndSetIfChanged(ref _defaultSpdxId, value);
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
     public int? MaxScanDepth
     {
-        get => _maxScanDepth;
-        set => this.RaiseAndSetIfChanged(ref _maxScanDepth, value);
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
     public string NewExcludedPath
     {
-        get => _newExcludedPath;
-        set => this.RaiseAndSetIfChanged(ref _newExcludedPath, value);
-    }
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = string.Empty;
 
     public List<string> ExcludedPaths
     {
-        get => _excludedPaths;
-        set => this.RaiseAndSetIfChanged(ref _excludedPaths, value);
-    }
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = [];
 
     public ReactiveCommand<Unit, Unit> SaveCommand { get; }
     public ReactiveCommand<Unit, Unit> AddExcludedPathCommand { get; }

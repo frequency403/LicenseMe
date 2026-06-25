@@ -1,8 +1,10 @@
 using LicenseMe.Core.Cache;
 using LicenseMe.Core.Domain;
+using LicenseMe.Core.Domain.Models;
 using LicenseMe.Core.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using OpenSourceInitiative.LicenseApi.Interfaces;
 using OpenSourceInitiative.LicenseApi.Models;
 
@@ -13,12 +15,19 @@ internal sealed class LicenseCacheService(
     ILicenseCacheStore cacheStore,
     IOsiClient osiClient,
     ILicenseCollectionWriter licenseWriter,
+    IOptions<LicenseMeConfig> licenseMeConfig,
+    IConfigManager configManager,
     LicenseCacheOptions cacheOptions) : BackgroundService
 {
+    private DateTimeOffset _lastRefresh;
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (!cacheOptions.Enabled)
             return;
+
+        var persistedConfig = await configManager.LoadAsync(stoppingToken);
+        _lastRefresh = DateTimeOffset.FromUnixTimeSeconds(persistedConfig.LastCacheRefresh);
 
         if (await HasCacheExpiredOrIsInvalid(stoppingToken))
             await RefreshAsync(stoppingToken);
@@ -27,10 +36,14 @@ internal sealed class LicenseCacheService(
             var list = await GetAllLicenses(true, stoppingToken);
             licenseWriter.SetLicenses(list.AsReadOnly());
         }
-        
-        using var timer = new PeriodicTimer(cacheOptions.RefreshInterval);
-        while (await timer.WaitForNextTickAsync(stoppingToken))
+
+        while (!stoppingToken.IsCancellationRequested)
         {
+            var delay = _lastRefresh.Add(cacheOptions.RefreshInterval) - DateTimeOffset.UtcNow;
+
+            if (delay > TimeSpan.Zero)
+                await Task.Delay(delay, stoppingToken);
+
             if (await HasCacheExpiredOrIsInvalid(stoppingToken))
             {
                 await cacheStore.PurgeExpiredAsync(stoppingToken);
@@ -39,25 +52,23 @@ internal sealed class LicenseCacheService(
         }
     }
 
+
     private async Task<OsiLicense[]> GetAllLicenses(bool fromCache = true, CancellationToken ct = default)
     {
-        var asyncEnumerable = fromCache 
-            ? cacheStore.GetAllAsync(ct)
-            : osiClient.GetAllLicensesAsyncEnumerable(ct);
-
-        Func<string, CancellationToken, Task<OsiLicense?>> singleLicense = fromCache
-            ? cacheStore.GetByOsiIdAsync
-            : osiClient.GetByOsiIdAsync;
         var list = new List<OsiLicense>();
-        await foreach (var license in asyncEnumerable.WithCancellation(ct))
+        await foreach (var license in (fromCache
+                           ? cacheStore.GetAllAsync(ct)
+                           : osiClient.GetAllLicensesAsyncEnumerable(ct)).WithCancellation(ct))
         {
-            if(license is null)
-                continue;
-            if((await singleLicense(license.Id, ct)) is { } fullLicense)
-                list.Add(fullLicense);
+            if (string.IsNullOrWhiteSpace(license?.LicenseText)) continue;
+            
+            logger.LogInformation("Adding license {LicenseId}", license.SpdxId);
+            list.AddRange(license);
         }
+
         return list.ToArray();
     }
+
 
     private async Task<bool> HasCacheExpiredOrIsInvalid(CancellationToken ct = default) =>
         (await cacheStore.GetIntegrityAsync(ct)) is { IsExpired: true } or { IsValid: false };
@@ -68,9 +79,15 @@ internal sealed class LicenseCacheService(
         try
         {
             var licenses = await GetAllLicenses(false, ct);
-
             await cacheStore.UpsertBulkAsync(licenses, ct);
             licenseWriter.SetLicenses(licenses.AsReadOnly());
+
+            _lastRefresh = DateTimeOffset.UtcNow;
+
+            var config = licenseMeConfig.Value;
+            config.LastCacheRefresh = _lastRefresh.ToUnixTimeSeconds();
+            await configManager.SaveAsync(config, ct);
+
             logger.LogInformation("Cache refresh completed — {Count} licenses stored", licenses.Length);
         }
         catch (Exception ex)

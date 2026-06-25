@@ -43,10 +43,6 @@ public class Program
                     description: "Application settings", iconKind: MaterialIconKind.Settings);
                 svc.RegisterViewWithViewModel<LicensesView, LicensesViewModel>(displayName: "Licenses",
                     description: "View licenses", iconKind: MaterialIconKind.License, lifetime: ServiceLifetime.Singleton);
-
-                svc.AddHttpClient<LicensesViewModel>()
-                    .RemoveAllLoggers()
-                    .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(3));
             })
             .ConfigureLogging((_, builder) =>
             {

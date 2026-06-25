@@ -7,6 +7,7 @@ public sealed record LicenseMeConfig
     public List<string> ExcludedPaths { get; init; } = [];
     public int? MaxScanDepth { get; init; }
     public string? LastScanRoot { get; init; }
+    public long LastCacheRefresh { get; set; } = 0;
 
     public static readonly LicenseMeConfig Default = new();
 }

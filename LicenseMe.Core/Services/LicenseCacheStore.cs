@@ -10,9 +10,6 @@ using OpenSourceInitiative.LicenseApi.Models;
 
 internal sealed class LicenseCacheStore : ILicenseCacheStore
 {
-    // ── Connection ────────────────────────────────────────────────────────────
-    private const string ConnectionStringTemplate = "Data Source={0}";
-
     // ── DDL ───────────────────────────────────────────────────────────────────
     private const string CreateTableSql =
         """

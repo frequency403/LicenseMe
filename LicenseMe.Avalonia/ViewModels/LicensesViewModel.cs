@@ -20,25 +20,22 @@ public partial class LicensesViewModel : ViewModelBase
     [Reactive] private OsiLicense _selectedLicense;
     [Reactive] private string? _searchText;
     [Reactive] private OsiLicenseKeyword? _selectedKeyword;
-
     [ObservableAsProperty(ReadOnly = true)] private IEnumerable<OsiLicense> _filteredLicenses = [];
     
     private readonly ILogger<LicensesViewModel> _logger;
+    private readonly ILicenseRepository _osiLicenseRepository;
     private readonly IClipboard _clipboard;
-    private readonly HttpClient _httpClient;
-    private readonly IProgressReporter<string> _progressReporter;
-    
+
     public LicensesViewModel(ILogger<LicensesViewModel> logger, 
         ILicenseRepository osiLicenseRepository, 
         IClipboard clipboard,
-        HttpClient httpClient,
         [FromKeyedServices("LicenseReporter")] 
         IProgressReporter<string> progressReporter)
     {
         _logger = logger;
-        _progressReporter = progressReporter;
+        _osiLicenseRepository = osiLicenseRepository;
+        ProgressReporter = progressReporter;
         _clipboard = clipboard;
-        _httpClient = httpClient;
         
         var keywordChanged = KeywordFilters
             .Select(f => f.WhenAnyValue(x => x.IsSelected))
@@ -47,18 +44,17 @@ public partial class LicensesViewModel : ViewModelBase
             .StartWith(Unit.Default);
 
         _filteredLicensesHelper = this.WhenAnyValue(x => x.SearchText)
-            .CombineLatest(this.WhenAnyValue(x => x.Licenses),
+            .CombineLatest(this.WhenAnyValue(x => x._osiLicenseRepository.Licenses),
                 keywordChanged,
                 (search, licenses, _) => ApplyFilter(search, KeywordFilters, licenses))
             .Throttle(TimeSpan.FromMilliseconds(150))
             .ObserveOn(AvaloniaScheduler.Instance)
             .ToProperty(this, x => x.FilteredLicenses).DisposeWith(Disposables);
 
-        Licenses = new ObservableCollection<OsiLicense>(osiLicenseRepository.Licenses);
     }
 
-    public ObservableCollection<OsiLicense> Licenses { get; }
-    public IProgressReporter<string> ProgressReporter => _progressReporter;
+    public IProgressReporter<string> ProgressReporter { get; }
+
     public IReadOnlyList<KeywordFilter> KeywordFilters { get; } =
         Enum.GetValues<OsiLicenseKeyword>()
             .Select(k => new KeywordFilter(k))
