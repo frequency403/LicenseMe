@@ -33,8 +33,13 @@ internal sealed class LicenseCacheService(
             await RefreshAsync(stoppingToken);
         else
         {
-            var list = await GetAllLicenses(true, stoppingToken);
-            licenseWriter.SetLicenses(list.AsReadOnly());
+            await foreach (var license in GetLicenses(true, stoppingToken))
+            {
+                if(license is null || string.IsNullOrWhiteSpace(license.LicenseText))
+                    continue;
+                logger.LogDebug("Adding license {LicenseId}", license.SpdxId);
+                licenseWriter.SetLicense(license);
+            }
         }
 
         while (!stoppingToken.IsCancellationRequested)
@@ -52,22 +57,10 @@ internal sealed class LicenseCacheService(
         }
     }
 
-
-    private async Task<OsiLicense[]> GetAllLicenses(bool fromCache = true, CancellationToken ct = default)
-    {
-        var list = new List<OsiLicense>();
-        await foreach (var license in (fromCache
-                           ? cacheStore.GetAllAsync(ct)
-                           : osiClient.GetAllLicensesAsyncEnumerable(ct)).WithCancellation(ct))
-        {
-            if (string.IsNullOrWhiteSpace(license?.LicenseText)) continue;
-            
-            logger.LogInformation("Adding license {LicenseId}", license.SpdxId);
-            list.AddRange(license);
-        }
-
-        return list.ToArray();
-    }
+    private IAsyncEnumerable<OsiLicense?> GetLicenses(bool fromCache = true, CancellationToken ct = default)
+    => fromCache
+        ? cacheStore.GetAllAsync(ct)
+        : osiClient.GetAllLicensesAsyncEnumerable(ct);
 
 
     private async Task<bool> HasCacheExpiredOrIsInvalid(CancellationToken ct = default) =>
@@ -78,9 +71,13 @@ internal sealed class LicenseCacheService(
         logger.LogInformation("Cache refresh cycle started");
         try
         {
-            var licenses = await GetAllLicenses(false, ct);
-            await cacheStore.UpsertBulkAsync(licenses, ct);
-            licenseWriter.SetLicenses(licenses.AsReadOnly());
+            await foreach(var license in GetLicenses(false, ct))
+            {
+                if (string.IsNullOrWhiteSpace(license?.LicenseText)) continue;
+                logger.LogDebug("Updating license {LicenseId}", license.SpdxId);
+                await cacheStore.UpsertAsync(license, ct);
+                licenseWriter.SetLicense(license, true);
+            }
 
             _lastRefresh = DateTimeOffset.UtcNow;
 
@@ -88,7 +85,7 @@ internal sealed class LicenseCacheService(
             config.LastCacheRefresh = _lastRefresh.ToUnixTimeSeconds();
             await configManager.SaveAsync(config, ct);
 
-            logger.LogInformation("Cache refresh completed — {Count} licenses stored", licenses.Length);
+            logger.LogInformation("Cache refresh completed — {Count} licenses stored", await cacheStore.GetCountAsync(ct));
         }
         catch (Exception ex)
         {

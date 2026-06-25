@@ -1,44 +1,54 @@
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using LicenseMe.Core.Cache;
 using LicenseMe.Core.Interfaces;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using OpenSourceInitiative.LicenseApi.Enums;
 using OpenSourceInitiative.LicenseApi.Interfaces;
 using OpenSourceInitiative.LicenseApi.Models;
 
 namespace LicenseMe.Core.Domain;
 
-internal sealed class LicenseRepository : ILicenseRepository, ILicenseCollectionWriter
+internal sealed class LicenseRepository(
+    ILogger<LicenseRepository> logger,
+    IOsiClient osiClient,
+    ILicenseCacheStore cacheStore,
+    LicenseCacheOptions cacheOptions)   
+    : ILicenseRepository, ILicenseCollectionWriter
 {
-    private readonly ILogger<LicenseRepository> _logger;
-    private readonly IOsiClient _osiClient;
-    private readonly ILicenseCacheStore _cacheStore;
-    private readonly LicenseCacheOptions _options;
-    
-    private volatile IReadOnlyCollection<OsiLicense> _licenses = [];
-    public IReadOnlyCollection<OsiLicense> Licenses => _licenses;
-    
-    void ILicenseCollectionWriter.SetLicenses(IReadOnlyCollection<OsiLicense> value) =>
-        _licenses = value;
+    public ObservableCollection<OsiLicense> Licenses { get; } = [];
 
-    public LicenseRepository(
-        ILogger<LicenseRepository> logger,
-        IOsiClient osiClient,
-        ILicenseCacheStore cacheStore,
-        LicenseCacheOptions cacheOptions)
+    void ILicenseCollectionWriter.SetLicenses(IReadOnlyCollection<OsiLicense> value)
     {
-        this._logger = logger;
-        this._osiClient = osiClient;
-        this._cacheStore = cacheStore;
-        this._options = cacheOptions;
+        Licenses.Clear();
+        foreach (var license in value)
+        {
+            Licenses.Add(license);
+        }
     }
+
+    public void SetLicense(OsiLicense license, bool forceOverride = false)
+    {
+        if(!forceOverride && Licenses.Contains(license))
+            return;
+        Licenses.Add(license);
+    }
+
+    public bool IsEmpty => Licenses.Count == 0;
+    public int CurrentCount => Licenses.Count;
+    public int TotalCount { get; } = cacheStore.GetCountAsync().GetAwaiter().GetResult();
+
+    private async Task<bool> IsCacheEnabledAndPopulatedAsync(CancellationToken token = default) 
+        => cacheOptions.Enabled && await cacheStore.IsPopulatedAsync(token);
 
     public async IAsyncEnumerable<OsiLicense?> GetAllLicensesAsyncEnumerable([EnumeratorCancellation] CancellationToken token = default)
     {
-        var asyncEnumerable = !_options.Enabled || !(await _cacheStore.IsPopulatedAsync(token)) 
-            ? _osiClient.GetAllLicensesAsyncEnumerable(token)
-            : _cacheStore.GetAllAsync(token);
+        var asyncEnumerable = !(await IsCacheEnabledAndPopulatedAsync(token)) 
+            ? osiClient.GetAllLicensesAsyncEnumerable(token)
+            : cacheStore.GetAllAsync(token);
         await foreach (var license in asyncEnumerable.WithCancellation(token))
         {
             yield return license;
@@ -47,65 +57,65 @@ internal sealed class LicenseRepository : ILicenseRepository, ILicenseCollection
 
     public async Task<OsiLicense?> GetByOsiIdAsync(string id, CancellationToken token = default)
     {
-        if (!_options.Enabled || !await _cacheStore.IsPopulatedAsync(token))
-            return await _osiClient.GetByOsiIdAsync(id, token);
+        if (!(await IsCacheEnabledAndPopulatedAsync(token)))
+            return await osiClient.GetByOsiIdAsync(id, token);
 
-        var cached = await _cacheStore.GetByOsiIdAsync(id, token);
+        var cached = await cacheStore.GetByOsiIdAsync(id, token);
         if (cached is not null)
             return cached;
 
-        _logger.LogDebug("Cache miss for OSI id '{Id}' — falling back to API", id);
-        return await _osiClient.GetByOsiIdAsync(id, token);
+        logger.LogDebug("Cache miss for OSI id '{Id}' — falling back to API", id);
+        return await osiClient.GetByOsiIdAsync(id, token);
     }
 
     public async Task<IEnumerable<OsiLicense?>> GetBySpdxIdAsync(string id, CancellationToken token = default)
     {
-        if (!_options.Enabled || !await _cacheStore.IsPopulatedAsync(token))
-            return await _osiClient.GetBySpdxIdAsync(id, token);
+        if (!(await IsCacheEnabledAndPopulatedAsync(token)))
+            return await osiClient.GetBySpdxIdAsync(id, token);
 
-        var cached = (await _cacheStore.GetBySpdxIdAsync(id, token)).ToList();
+        var cached = (await cacheStore.GetBySpdxIdAsync(id, token)).ToList();
         if (cached.Count > 0)
             return cached;
 
-        return await _osiClient.GetBySpdxIdAsync(id, token);
+        return await osiClient.GetBySpdxIdAsync(id, token);
     }
 
     public async Task<IEnumerable<OsiLicense?>> GetByNameAsync(string name, CancellationToken token = default)
     {
-        if (!_options.Enabled || !await _cacheStore.IsPopulatedAsync(token))
-            return await _osiClient.GetByNameAsync(name, token);
+        if (!(await IsCacheEnabledAndPopulatedAsync(token)))
+            return await osiClient.GetByNameAsync(name, token);
 
-        var cached = (await _cacheStore.GetByNameAsync(name, token)).ToList();
+        var cached = (await cacheStore.GetByNameAsync(name, token)).ToList();
         if (cached.Count > 0)
             return cached;
 
-        return await _osiClient.GetByNameAsync(name, token);
+        return await osiClient.GetByNameAsync(name, token);
     }
 
     public async Task<IEnumerable<OsiLicense?>> GetByKeywordAsync(OsiLicenseKeyword keyword,
         CancellationToken token = default)
     {
-        if (!_options.Enabled || !await _cacheStore.IsPopulatedAsync(token))
-            return await _osiClient.GetByKeywordAsync(keyword, token);
+        if (!(await IsCacheEnabledAndPopulatedAsync(token)))    
+            return await osiClient.GetByKeywordAsync(keyword, token);
 
         var all = new List<OsiLicense?>();
-        await foreach (var license in _cacheStore.GetAllAsync(token))
+        await foreach (var license in cacheStore.GetAllAsync(token))
             all.Add(license);
 
         var filtered = all.Where(l => l?.Keywords?.Contains(keyword) == true).ToList();
         if (filtered.Count > 0)
             return filtered;
 
-        return await _osiClient.GetByKeywordAsync(keyword, token);
+        return await osiClient.GetByKeywordAsync(keyword, token);
     }
 
     public async Task<IEnumerable<OsiLicense?>> GetByStewardAsync(string steward, CancellationToken token = default)
     {
-        if (!_options.Enabled || !await _cacheStore.IsPopulatedAsync(token))
-            return await _osiClient.GetByStewardAsync(steward, token);
+        if (!(await IsCacheEnabledAndPopulatedAsync(token)))
+            return await osiClient.GetByStewardAsync(steward, token);
 
         var all = new List<OsiLicense?>();
-        await foreach (var license in _cacheStore.GetAllAsync(token))
+        await foreach (var license in cacheStore.GetAllAsync(token))
             all.Add(license);
 
         var filtered = all
@@ -115,14 +125,14 @@ internal sealed class LicenseRepository : ILicenseRepository, ILicenseCollection
         if (filtered.Count > 0)
             return filtered;
 
-        return await _osiClient.GetByStewardAsync(steward, token);
+        return await osiClient.GetByStewardAsync(steward, token);
     }
 
     public Task<CacheIntegrity> GetCacheIntegrityAsync(CancellationToken ct = default) =>
-        _options.Enabled
-            ? _cacheStore.GetIntegrityAsync(ct)
+        cacheOptions.Enabled
+            ? cacheStore.GetIntegrityAsync(ct)
             : Task.FromResult(new CacheIntegrity(IsValid: false, IsExpired: true));
 
-    public void Dispose() => _osiClient.Dispose();
-    public ValueTask DisposeAsync() => _osiClient.DisposeAsync();
+    public void Dispose() => osiClient.Dispose();
+    public ValueTask DisposeAsync() => osiClient.DisposeAsync();
 }

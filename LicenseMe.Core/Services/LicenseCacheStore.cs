@@ -103,47 +103,37 @@ internal sealed class LicenseCacheStore : ILicenseCacheStore
 
     private readonly ILogger<LicenseCacheStore> _logger;
     private readonly LicenseCacheOptions _options;
-    private readonly string _connectionString;
+    private readonly SqliteConnection _connection;
 
     public LicenseCacheStore(ILogger<LicenseCacheStore> logger, LicenseCacheOptions options)
     {
         this._logger           = logger;
         this._options          = options;
-        this._connectionString = new SqliteConnectionStringBuilder()
+        _connection = new SqliteConnection(new SqliteConnectionStringBuilder()
         {
             DataSource = options.DatabasePath,
             Mode = SqliteOpenMode.ReadWriteCreate,
             Pooling = true
-        }.ToString();
+        }.ToString());
 
         if (this._options.Enabled)
-            InitializeSchema();
-    }
-
-    private void InitializeSchema()
-    {
+            return;
         _logger.LogInformation(string.Format(LogSchemaInit, _options.DatabasePath));
-        using var connection = new SqliteConnection(_connectionString);
-        connection.Execute(CreateTableSql);
-        connection.Execute(CreateOsiIdIndexSql);
+        _connection.Execute(CreateTableSql);
+        _connection.Execute(CreateOsiIdIndexSql);
     }
+    
 
 
-    public async Task UpsertAsync(OsiLicense license, CancellationToken ct = default)
-    {
-        await using var connection = new SqliteConnection(_connectionString);
-        await connection.ExecuteAsync(UpsertSql, BuildRow(license));
-    }
+    public async Task UpsertAsync(OsiLicense license, CancellationToken ct = default) => await _connection.ExecuteAsync(UpsertSql, BuildRow(license));
 
     public async Task UpsertBulkAsync(IEnumerable<OsiLicense> licenses, CancellationToken ct = default)
     {
-        await using var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync(ct);
-        await using var transaction = await connection.BeginTransactionAsync(ct);
+        await using var transaction = await _connection.BeginTransactionAsync(ct);
         try
         {
             foreach (var license in licenses)
-                await connection.ExecuteAsync(UpsertSql, BuildRow(license), transaction);
+                await _connection.ExecuteAsync(UpsertSql, BuildRow(license), transaction);
 
             await transaction.CommitAsync(ct);
         }
@@ -155,38 +145,23 @@ internal sealed class LicenseCacheStore : ILicenseCacheStore
     }
 
     public async Task<IEnumerable<OsiLicense?>> GetBySpdxIdAsync(string spdxId, CancellationToken ct = default)
-    {
-        var pattern = spdxId.Replace("*", "%");
-        await using var connection = new SqliteConnection(_connectionString);
-        var rows = await connection.QueryAsync<CacheRow>(
-            SelectBySpdxIdSql, new { Pattern = pattern, Threshold = Threshold() });
-
-        return rows.Select(Deserialize);
-    }
+    => (await _connection.QueryAsync<CacheRow>(
+        SelectBySpdxIdSql, new { Pattern = spdxId.Replace("*", "%"), Threshold = Threshold() })).Select(Deserialize);
 
     public async Task<OsiLicense?> GetByOsiIdAsync(string osiId, CancellationToken ct = default)
-    {
-        await using var connection = new SqliteConnection(_connectionString);
-        var row = await connection.QueryFirstOrDefaultAsync<CacheRow>(
-            SelectByOsiIdSql, new { OsiId = osiId, Threshold = Threshold() });
-
-        return row is null ? null : Deserialize(row);
-    }
+    => (await _connection.QueryFirstOrDefaultAsync<CacheRow>(
+        SelectByOsiIdSql, new { OsiId = osiId, Threshold = Threshold() })) is { } row
+        ? Deserialize(row)
+        : null;
 
     public async Task<IEnumerable<OsiLicense?>> GetByNameAsync(string name, CancellationToken ct = default)
-    {
-        await using var connection = new SqliteConnection(_connectionString);
-        var rows = await connection.QueryAsync<CacheRow>(
-            SelectByNameSql, new { Name = name, Threshold = Threshold() });
-
-        return rows.Select(Deserialize);
-    }
+    => (await _connection.QueryAsync<CacheRow>(
+        SelectByNameSql, new { Name = name, Threshold = Threshold() })).Select(Deserialize);
 
     public async IAsyncEnumerable<OsiLicense> GetAllAsync(
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        await using var connection = new SqliteConnection(_connectionString);
-        var rows = await connection.QueryAsync<CacheRow>(
+        var rows = await _connection.QueryAsync<CacheRow>(
             SelectAllSql, new { Threshold = Threshold() });
 
         foreach (var row in rows)
@@ -200,31 +175,27 @@ internal sealed class LicenseCacheStore : ILicenseCacheStore
 
     public async Task PurgeExpiredAsync(CancellationToken ct = default)
     {
-        await using var connection = new SqliteConnection(_connectionString);
-        var count = await connection.ExecuteAsync(DeleteExpiredSql, new { Threshold = Threshold() });
+        var count = await _connection.ExecuteAsync(DeleteExpiredSql, new { Threshold = Threshold() });
         _logger.LogInformation(string.Format(LogPurged, count));
     }
 
     public async Task<bool> IsPopulatedAsync(CancellationToken ct = default)
-    {
-        await using var connection = new SqliteConnection(_connectionString);
-        var count = await connection.ExecuteScalarAsync<int>(
-            CountTotalNonExpiredSql, new { Threshold = Threshold() });
-        return count > 0;
-    }
+    => (await _connection.ExecuteScalarAsync<int>(
+        CountTotalNonExpiredSql, new { Threshold = Threshold() })) > 0;
+
+    public async Task<int> GetCountAsync(CancellationToken ct = default)
+        => await _connection.ExecuteScalarAsync<int>(CountTotalSql);
 
     public async Task<CacheIntegrity> GetIntegrityAsync(CancellationToken ct = default)
     {
-        await using var connection = new SqliteConnection(_connectionString);
-
-        var total = await connection.ExecuteScalarAsync<int>(CountTotalSql);
+        var total = await _connection.ExecuteScalarAsync<int>(CountTotalSql);
         if (total == 0)
             return new CacheIntegrity(IsValid: false, IsExpired: true);
 
-        var expiredCount = await connection.ExecuteScalarAsync<int>(
+        var expiredCount = await _connection.ExecuteScalarAsync<int>(
             CountExpiredSql, new { Threshold = Threshold() });
 
-        var rows    = await connection.QueryAsync<CacheRow>(SelectAllPayloadsSql);
+        var rows    = await _connection.QueryAsync<CacheRow>(SelectAllPayloadsSql);
         var isValid = rows.All(r =>
         {
             var license = Deserialize(r);
@@ -261,5 +232,15 @@ internal sealed class LicenseCacheStore : ILicenseCacheStore
 
         LicenseTextProperty.SetValue(license, row.LicenseText);
         return license;
+    }
+
+    public void Dispose()
+    {
+        _connection.Dispose();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _connection.DisposeAsync();
     }
 }

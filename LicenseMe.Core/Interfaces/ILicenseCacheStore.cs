@@ -3,7 +3,7 @@ using OpenSourceInitiative.LicenseApi.Models;
 
 namespace LicenseMe.Core.Interfaces;
 
-internal interface ILicenseCacheStore
+internal interface ILicenseCacheStore : IDisposable, IAsyncDisposable
 {
     Task UpsertAsync(OsiLicense license, CancellationToken ct = default);
     Task UpsertBulkAsync(IEnumerable<OsiLicense> licenses, CancellationToken ct = default);
@@ -14,4 +14,5 @@ internal interface ILicenseCacheStore
     Task PurgeExpiredAsync(CancellationToken ct = default);
     Task<CacheIntegrity> GetIntegrityAsync(CancellationToken ct = default);
     Task<bool> IsPopulatedAsync(CancellationToken ct = default);
+    Task<int> GetCountAsync(CancellationToken ct = default);
 }
