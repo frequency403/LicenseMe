@@ -39,7 +39,7 @@ internal sealed class LicenseRepository(
 
     public bool IsEmpty => Licenses.Count == 0;
     public int CurrentCount => Licenses.Count;
-    public int TotalCount { get; } = cacheStore.GetCountAsync().GetAwaiter().GetResult();
+    public int TotalCount => cacheStore.GetCountAsync().GetAwaiter().GetResult();
 
     private async Task<bool> IsCacheEnabledAndPopulatedAsync(CancellationToken token = default) 
         => cacheOptions.Enabled && await cacheStore.IsPopulatedAsync(token);

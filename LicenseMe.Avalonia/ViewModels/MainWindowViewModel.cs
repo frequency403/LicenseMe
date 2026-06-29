@@ -23,7 +23,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     [Reactive] private bool _isIndeterminate;
     [Reactive] private int _licenseCurrentCount;
     [Reactive] private int _licenseTotalCount;
-    [Reactive] private bool _isTimerRunning;
+    [Reactive] private bool _licenseFetchInProgress;
 
     private const double IconWidth = 36;
     private const double ItemPadding = 32;
@@ -31,7 +31,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private const double FontSize = 14;
 
     private readonly ILogger<MainWindowViewModel> _logger;
-    private readonly Timer _timer = new(TimeSpan.FromSeconds(3));
 
     public ObservableCollection<ViewRegistration> Views { get; } = new();
 
@@ -63,14 +62,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 (currentPage) => string.Join(" ", AppDomain.CurrentDomain.FriendlyName,
                     currentPage?.DisplayName ?? string.Empty)).ToProperty(this, vm => vm.Title);
 
-        this.WhenAnyValue(x => licenseRepository.Licenses)
+        licenseRepository.WhenAnyValue(repo => repo.Licenses)
             .Subscribe(col =>
             {
-                IsIndeterminate = col.Count >= licenseRepository.TotalCount;
-                LicenseCurrentCount = col.Count;
+                IsIndeterminate = licenseRepository.TotalCount == 0;
+                LicenseCurrentCount = licenseRepository.CurrentCount;
                 LicenseTotalCount = licenseRepository.TotalCount;
+                LicenseFetchInProgress = LicenseCurrentCount != LicenseTotalCount;
             }).DisposeWith(Disposables);
-
     }
 
     private void CalculatePaneLengths()

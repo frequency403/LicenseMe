@@ -116,7 +116,7 @@ internal sealed class LicenseCacheStore : ILicenseCacheStore
             Pooling = true
         }.ToString());
 
-        if (this._options.Enabled)
+        if (!_options.Enabled)
             return;
         _logger.LogInformation(string.Format(LogSchemaInit, _options.DatabasePath));
         _connection.Execute(CreateTableSql);

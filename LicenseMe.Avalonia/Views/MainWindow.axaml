@@ -10,15 +10,16 @@
         Title="{Binding Title}"
         Width="1000" Height="680"
         MinWidth="700" MinHeight="480">
-    <SplitView
+    <Grid RowDefinitions="* Auto">
+        <SplitView Grid.Row="0"
         x:Name="SplitView"
         IsPaneOpen="{Binding IsExpanded}"
         CompactPaneLength="{Binding CompactPaneLength}"
         OpenPaneLength="{Binding OpenPaneLength}"
         DisplayMode="CompactInline">
         <SplitView.Pane>
-            <DockPanel>
-                <Button DockPanel.Dock="Top" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" Command="{Binding ToggleExpandedCommand}">
+            <Grid RowDefinitions="Auto *">
+                <Button Grid.Row="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" Command="{Binding ToggleExpandedCommand}">
                     <Button.Content>
                         <StackPanel>
                             <Panel IsVisible="{Binding !IsExpanded}">
@@ -30,7 +31,8 @@
                         </StackPanel>
                     </Button.Content>
                 </Button>
-                <ListBox ItemsSource="{Binding Views}" SelectionMode="Single"
+                
+                <ListBox Grid.Row="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" ItemsSource="{Binding Views}" SelectionMode="Single"
                          SelectedItem="{Binding CurrentPage}">
                     <i:Interaction.Behaviors>
                         <behaviors:PaneLengthMeasureBehavior />
@@ -54,11 +56,25 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
-            </DockPanel>
-            
+            </Grid>
         </SplitView.Pane>
         <SplitView.Content>
             <ContentControl Content="{Binding CurrentPage?.Instance}"/>
         </SplitView.Content>
     </SplitView>
+        <Border Grid.Row="1">
+            <Grid ColumnDefinitions="* * *">
+                <ProgressBar Grid.Column="0" 
+                             IsVisible="{Binding LicenseFetchInProgress}"
+                             IsIndeterminate="{Binding IsIndeterminate}" 
+                             Value="{Binding LicenseCurrentCount}" 
+                             ShowProgressText="{Binding !IsIndeterminate}"
+                             ProgressTextFormat="{}{0}/{3} Licenses ({1:0}%)"
+                             Maximum="{Binding LicenseTotalCount}" />
+                
+                
+            </Grid>
+        </Border>
+    </Grid>
+    
 </Window>

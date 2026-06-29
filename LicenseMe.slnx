@@ -33,6 +33,7 @@
     </Folder>
 
     <Project Path="LicenseMe.Avalonia/LicenseMe.Avalonia.csproj" />
+    <Project Path="LicenseMe.Cache/LicenseMe.Cache.csproj" />
     <Project Path="LicenseMe.Cli/LicenseMe.Cli.csproj" />
     <Project Path="LicenseMe.Core/LicenseMe.Core.csproj" />
 </Solution>
