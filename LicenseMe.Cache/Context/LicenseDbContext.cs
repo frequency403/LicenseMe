@@ -1,40 +1,53 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using OpenSourceInitiative.LicenseApi.Models;
 
 namespace LicenseMe.Cache.Context;
 
-public class LicenseDbContext : DbContext
+public class LicenseDbContext(DbContextOptions<LicenseDbContext> options) : DbContext(options)
 {
-    public LicenseDbContext()
-    {
-        
-    }
+    private const string LicenseTextTableName = "LicenseText";
+    private const string TimestampTableName = "OsiLicenseTimestamp";
+    internal const string LastUpdatedPropertyName = "LastUpdatedUtc";
 
-    public DbSet<OsiLicense> Licenses { get; set; }
-    
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    public DbSet<OsiLicense> Licenses { get; set; } = null!;
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
-        
+        // OsiLicense.Links etc. carry [JsonPropertyName] for the OSI REST payload, not for JSON-column
+        // mapping. The attribute convention picks it up anyway and fails validation because Links is a
+        // top-level (non-nested) owned navigation mapped to plain columns, not a JSON column.
+        configurationBuilder.Conventions.Remove(typeof(RelationalNavigationJsonPropertyNameAttributeConvention));
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        var osiLicenseName = nameof(OsiLicense);
-        var osiLicenseIdName = osiLicenseName + nameof(OsiLicense.Id);
-        var osiLicenseLicenseTextName = osiLicenseName + nameof(OsiLicense.LicenseText);
-        
         modelBuilder.Entity<OsiLicense>(entityBuilder =>
         {
-            entityBuilder
-                .ToTable(osiLicenseName)
-                .SplitToTable(osiLicenseLicenseTextName, tableBuilder =>
-                {
-                    tableBuilder.Property(license => license.Id).HasColumnName(osiLicenseIdName);
-                    tableBuilder.Property(license => license.LicenseText);
-                });
-            
-            entityBuilder.HasKey(e => e.Id);
-            entityBuilder.Property(e => e.Id).ValueGeneratedNever().HasColumnName(osiLicenseIdName);
+            entityBuilder.ToTable(nameof(OsiLicense));
+            entityBuilder.HasKey(license => license.Id);
+            entityBuilder.Property(license => license.Id).ValueGeneratedNever();
+
+            entityBuilder.OwnsOne(license => license.Links, linksBuilder =>
+            {
+                linksBuilder.OwnsOne(links => links.Self);
+                linksBuilder.OwnsOne(links => links.Html);
+                linksBuilder.OwnsOne(links => links.Collection);
+            });
+
+            entityBuilder.Property<DateTime>(LastUpdatedPropertyName)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .ValueGeneratedOnAddOrUpdate();
+
+            entityBuilder.SplitToTable(LicenseTextTableName, tableBuilder =>
+            {
+                tableBuilder.Property(license => license.LicenseText);
+            });
+
+            entityBuilder.SplitToTable(TimestampTableName, tableBuilder =>
+            {
+                tableBuilder.Property<DateTime>(LastUpdatedPropertyName).HasColumnName("Timestamp");
+            });
         });
     }
 }

@@ -5,6 +5,7 @@ using System.Reactive.Linq;
 using System.Text.RegularExpressions;
 using Avalonia.Input.Platform;
 using Avalonia.ReactiveUI;
+using LicenseMe.Cache.Context;
 using LicenseMe.Core.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -23,17 +24,15 @@ public partial class LicensesViewModel : ViewModelBase
     [ObservableAsProperty(ReadOnly = true)] private IEnumerable<OsiLicense> _filteredLicenses = [];
     
     private readonly ILogger<LicensesViewModel> _logger;
-    private readonly ILicenseRepository _osiLicenseRepository;
     private readonly IClipboard _clipboard;
 
     public LicensesViewModel(ILogger<LicensesViewModel> logger, 
-        ILicenseRepository osiLicenseRepository, 
+        LicenseDbContext dbContext,
         IClipboard clipboard,
         [FromKeyedServices("LicenseReporter")] 
         IProgressReporter<string> progressReporter)
     {
         _logger = logger;
-        _osiLicenseRepository = osiLicenseRepository;
         ProgressReporter = progressReporter;
         _clipboard = clipboard;
         
@@ -44,7 +43,7 @@ public partial class LicensesViewModel : ViewModelBase
             .StartWith(Unit.Default);
 
         _filteredLicensesHelper = this.WhenAnyValue(x => x.SearchText)
-            .CombineLatest(this.WhenAnyValue(x => x._osiLicenseRepository.Licenses),
+            .CombineLatest(dbContext.WhenAnyValue(x => x.Licenses),
                 keywordChanged,
                 (search, licenses, _) => ApplyFilter(search, KeywordFilters, licenses))
             .Throttle(TimeSpan.FromMilliseconds(150))

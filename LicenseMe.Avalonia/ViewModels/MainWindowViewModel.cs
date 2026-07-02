@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Reactive.Disposables.Fluent;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
+using LicenseMe.Cache.Context;
 using LicenseMe.Core.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -19,11 +20,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     [ObservableAsProperty(ReadOnly = true)]
     private string _title = string.Empty;
-    
-    [Reactive] private bool _isIndeterminate;
-    [Reactive] private int _licenseCurrentCount;
-    [Reactive] private int _licenseTotalCount;
-    [Reactive] private bool _licenseFetchInProgress;
 
     private const double IconWidth = 36;
     private const double ItemPadding = 32;
@@ -45,7 +41,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    public MainWindowViewModel(ILogger<MainWindowViewModel> logger, ILicenseRepository licenseRepository, IEnumerable<ViewRegistration> viewRegistrations)
+    public MainWindowViewModel(ILogger<MainWindowViewModel> logger, IEnumerable<ViewRegistration> viewRegistrations)
     {
         _logger = logger;
         foreach (var viewRegistration in viewRegistrations)
@@ -61,15 +57,6 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             .WhenAnyValue(x => x.CurrentPage,
                 (currentPage) => string.Join(" ", AppDomain.CurrentDomain.FriendlyName,
                     currentPage?.DisplayName ?? string.Empty)).ToProperty(this, vm => vm.Title);
-
-        licenseRepository.WhenAnyValue(repo => repo.Licenses)
-            .Subscribe(col =>
-            {
-                IsIndeterminate = licenseRepository.TotalCount == 0;
-                LicenseCurrentCount = licenseRepository.CurrentCount;
-                LicenseTotalCount = licenseRepository.TotalCount;
-                LicenseFetchInProgress = LicenseCurrentCount != LicenseTotalCount;
-            }).DisposeWith(Disposables);
     }
 
     private void CalculatePaneLengths()

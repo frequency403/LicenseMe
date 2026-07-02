@@ -6,6 +6,7 @@
     <PackageVersion Include="Avalonia.Controls.DataGrid" Version="12.0.1" />
     <PackageVersion Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
     <PackageVersion Include="Dapper" Version="2.1.79" />
+    <PackageVersion Include="Karambolo.Extensions.Logging.File" Version="4.1.1" />
     <PackageVersion Include="Material.Icons" Version="3.0.2" />
     <PackageVersion Include="Material.Icons.Avalonia" Version="3.0.2" />
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.9" />
@@ -13,7 +14,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
-    <PackageVersion Include="OpenSourceInitiative.LicenseApi" Version="2.2.0" />
+    <PackageVersion Include="OpenSourceInitiative.LicenseApi" Version="3.0.0" />
     <PackageVersion Include="LibGit2Sharp" Version="0.31.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.9" />

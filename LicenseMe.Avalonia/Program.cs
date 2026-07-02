@@ -22,41 +22,42 @@ public class Program
     public static async Task Main(string[] args)
     {
         using var mainCancellationTokenSource = new CancellationTokenSource();
-        using var host = Host.CreateDefaultBuilder()
-            .ConfigureAppConfiguration(cfg =>
-                cfg.AddJsonFile(ConfigManager.ConfigPath, optional: true))
-            .ConfigureServices((ctx, svc) =>
-            {
-                svc.AddLicenseMeCore(ctx.Configuration);
-                svc.AddSingleton<App>();
-                svc.AddSingleton<ExceptionHandler>();
-                svc.AddKeyedSingleton<IProgressReporter<string>, ReactiveProgressReporter<string>>("RepositoryReporter");
-                svc.AddKeyedSingleton<IProgressReporter<string>, ReactiveProgressReporter<string>>("LicenseReporter");
-                svc.AddSingleton<MainWindowViewModel>();
+        var hostBuilder = Host.CreateApplicationBuilder(args);
 
-                svc.AddSingleton<MainWindow>();
-                svc.AddTransient<IClipboard>(sp => sp.GetRequiredService<MainWindow>().Clipboard ?? throw new InvalidOperationException("MainWindow not found"));
+        hostBuilder.Configuration.AddJsonFile(source =>
+        {
+            source.ReloadOnChange = true;
+            source.Optional = true;
+            source.Path = ConfigManager.ConfigFileFullPath;
+        });
+        
+        hostBuilder.AddLicenseMeCore();
+        hostBuilder.Services.AddSingleton<App>();
+        hostBuilder.Services.AddSingleton<ExceptionHandler>();
+        hostBuilder.Services.AddKeyedSingleton<IProgressReporter<string>, ReactiveProgressReporter<string>>("RepositoryReporter");
+        hostBuilder.Services.AddKeyedSingleton<IProgressReporter<string>, ReactiveProgressReporter<string>>("LicenseReporter");
+        hostBuilder.Services.AddSingleton<MainWindowViewModel>();
 
-                svc.RegisterViewWithViewModel<ScanView, ScanViewModel>(displayName: "Scan",
-                    description: "Scan for licenses", iconKind: MaterialIconKind.Scan, isDefault: true, lifetime: ServiceLifetime.Singleton);
-                svc.RegisterViewWithViewModel<SettingsView, SettingsViewModel>(displayName: "Settings",
-                    description: "Application settings", iconKind: MaterialIconKind.Settings);
-                svc.RegisterViewWithViewModel<LicensesView, LicensesViewModel>(displayName: "Licenses",
-                    description: "View licenses", iconKind: MaterialIconKind.License, lifetime: ServiceLifetime.Singleton);
-            })
-            .ConfigureLogging((_, builder) =>
-            {
-                builder.AddSimpleConsole(opt =>
-                {
-                    opt.ColorBehavior = LoggerColorBehavior.Enabled;
-                    opt.IncludeScopes = true;
-                    opt.UseUtcTimestamp = false;
-                    opt.SingleLine = true;
-                    opt.TimestampFormat = "[yyyy-MM-dd HH:mm:ss] ";
-                });
-            })
-            .Build();
+        hostBuilder.Services.AddSingleton<MainWindow>();
+        hostBuilder.Services.AddTransient<IClipboard>(sp => sp.GetRequiredService<MainWindow>().Clipboard ?? throw new InvalidOperationException("MainWindow not found"));
 
+        hostBuilder.Services.RegisterViewWithViewModel<ScanView, ScanViewModel>(displayName: "Scan",
+            description: "Scan for licenses", iconKind: MaterialIconKind.Scan, isDefault: true);
+        hostBuilder.Services.RegisterViewWithViewModel<SettingsView, SettingsViewModel>(displayName: "Settings",
+            description: "Application settings", iconKind: MaterialIconKind.Settings);
+        hostBuilder.Services.RegisterViewWithViewModel<LicensesView, LicensesViewModel>(displayName: "Licenses",
+            description: "View licenses", iconKind: MaterialIconKind.License, lifetime: ServiceLifetime.Transient);
+        
+        hostBuilder.Logging.AddSimpleConsole(opt =>
+        {
+            opt.ColorBehavior = LoggerColorBehavior.Enabled;
+            opt.IncludeScopes = true;
+            opt.UseUtcTimestamp = false;
+            opt.SingleLine = true;
+            opt.TimestampFormat = "[yyyy-MM-dd HH:mm:ss] ";
+        });
+        
+        using var host = hostBuilder.Build();
         var app = host.Services.GetRequiredService<App>();
         var exceptionHandler = host.Services.GetRequiredService<ExceptionHandler>();
         

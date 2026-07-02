@@ -62,19 +62,6 @@
             <ContentControl Content="{Binding CurrentPage?.Instance}"/>
         </SplitView.Content>
     </SplitView>
-        <Border Grid.Row="1">
-            <Grid ColumnDefinitions="* * *">
-                <ProgressBar Grid.Column="0" 
-                             IsVisible="{Binding LicenseFetchInProgress}"
-                             IsIndeterminate="{Binding IsIndeterminate}" 
-                             Value="{Binding LicenseCurrentCount}" 
-                             ShowProgressText="{Binding !IsIndeterminate}"
-                             ProgressTextFormat="{}{0}/{3} Licenses ({1:0}%)"
-                             Maximum="{Binding LicenseTotalCount}" />
-                
-                
-            </Grid>
-        </Border>
     </Grid>
     
 </Window>

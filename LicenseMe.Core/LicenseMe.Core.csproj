@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="Karambolo.Extensions.Logging.File" />
     <PackageReference Include="LibGit2Sharp" />
     
     <PackageReference Include="Microsoft.Extensions.Options" />

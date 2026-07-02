@@ -10,9 +10,9 @@ using Spectre.Console.Cli;
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Configuration
-    .AddJsonFile(ConfigManager.ConfigPath, optional: true, reloadOnChange: false);
+    .AddJsonFile(ConfigManager.ConfigFileFullPath, optional: true, reloadOnChange: false);
 
-builder.Services.AddLicenseMeCore(builder.Configuration);
+builder.AddLicenseMeCore();
 
 var registrar = new TypeRegistrar(builder.Services);
 var app = new CommandApp(registrar);
