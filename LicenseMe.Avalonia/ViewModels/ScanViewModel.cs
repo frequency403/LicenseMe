@@ -23,28 +23,35 @@ public sealed partial class ScanViewModel : ViewModelBase
 
     [Reactive]
     private DiscoveredRepository? _selectedRepository = null;
-    
-    [ObservableAsProperty(ReadOnly = true, InitialValue = "false")]
-    private bool _canScan = false;
-    
+
+    // [ReactiveCommand(CanExecute = ...)] only wires up the CanExecute observable for members whose
+    // *declared* type is IObservable<bool> - checked by the generator via a type-name match, not via
+    // interface implementation, so a plain bool property (like IsScanning, or what CanScan used to be as
+    // an [ObservableAsProperty] bool) never qualifies. The generator doesn't report a diagnostic when the
+    // match fails either, it just silently omits the CanExecute wiring - these two fields exist purely to
+    // give it something of the right type to bind to.
+    private readonly IObservable<bool> _canScan;
+    private readonly IObservable<bool> _canCancelScan;
+
     public ObservableCollection<DiscoveredRepository> Repositories { get; } = [];
 
     public ScanViewModel(IRepositoryScanner scanner, [FromKeyedServices("RepositoryReporter")] IProgressReporter<string> progressReporter)
     {
         ProgressReporter = progressReporter as ReactiveProgressReporter<string>;
         _scanner = scanner;
-        _canScanHelper = this.WhenAnyValue(x => x.ScanRoot, x => x.IsScanning,
-            (root, scanning) => !string.IsNullOrWhiteSpace(root) && !scanning).ToProperty(this, vm => vm.CanScan);
+        _canScan = this.WhenAnyValue(x => x.ScanRoot, x => x.IsScanning,
+            (root, scanning) => !string.IsNullOrWhiteSpace(root) && !scanning);
+        _canCancelScan = this.WhenAnyValue(x => x.IsScanning);
     }
 
-    [ReactiveCommand(CanExecute = nameof(IsScanning))]
+    [ReactiveCommand(CanExecute = nameof(_canCancelScan))]
     private async Task CancelScanAsync()
     {
         if(_scanCts is not null)
             await _scanCts.CancelAsync();
     }
-    
-    [ReactiveCommand(CanExecute = nameof(CanScan))]
+
+    [ReactiveCommand(CanExecute = nameof(_canScan))]
     private async Task ExecuteScanAsync(CancellationToken ct)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);

@@ -1,5 +1,8 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using OpenSourceInitiative.LicenseApi.Enums;
 using OpenSourceInitiative.LicenseApi.Models;
 
 namespace LicenseMe.Cache.Context;
@@ -8,7 +11,7 @@ public class LicenseDbContext(DbContextOptions<LicenseDbContext> options) : DbCo
 {
     private const string LicenseTextTableName = "LicenseText";
     private const string TimestampTableName = "OsiLicenseTimestamp";
-    internal const string LastUpdatedPropertyName = "LastUpdatedUtc";
+    public const string LastUpdatedPropertyName = "LastUpdatedUtc";
 
     public DbSet<OsiLicense> Licenses { get; set; } = null!;
 
@@ -22,6 +25,15 @@ public class LicenseDbContext(DbContextOptions<LicenseDbContext> options) : DbCo
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        var stewardsConverter = new ValueConverter<IReadOnlyCollection<string>, string>(
+            v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+            v => (JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>())
+        );
+
+        var keywordsConverter = new ValueConverter<IReadOnlyCollection<OsiLicenseKeyword>, string>(
+            v => JsonSerializer.Serialize(v.Select(k => (int)k), (JsonSerializerOptions?)null),
+            v => (JsonSerializer.Deserialize<List<int>>(v, (JsonSerializerOptions?)null).Select(i => (OsiLicenseKeyword)i).ToList())
+        );
         modelBuilder.Entity<OsiLicense>(entityBuilder =>
         {
             entityBuilder.ToTable(nameof(OsiLicense));
@@ -35,6 +47,9 @@ public class LicenseDbContext(DbContextOptions<LicenseDbContext> options) : DbCo
                 linksBuilder.OwnsOne(links => links.Collection);
             });
 
+            entityBuilder.Property(license => license.Keywords).HasConversion(keywordsConverter);
+            entityBuilder.Property(license => license.Stewards).HasConversion(stewardsConverter);
+            
             entityBuilder.Property<DateTime>(LastUpdatedPropertyName)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .ValueGeneratedOnAddOrUpdate();

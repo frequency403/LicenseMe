@@ -9,4 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\LicenseMe.Cache\LicenseMe.Cache.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="LicenseMe.Core.Tests" />
+  </ItemGroup>
 </Project>

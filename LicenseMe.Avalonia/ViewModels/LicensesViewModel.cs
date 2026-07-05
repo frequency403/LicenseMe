@@ -7,6 +7,7 @@ using Avalonia.Input.Platform;
 using Avalonia.ReactiveUI;
 using LicenseMe.Cache.Context;
 using LicenseMe.Core.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenSourceInitiative.LicenseApi.Enums;
@@ -26,16 +27,16 @@ public partial class LicensesViewModel : ViewModelBase
     private readonly ILogger<LicensesViewModel> _logger;
     private readonly IClipboard _clipboard;
 
-    public LicensesViewModel(ILogger<LicensesViewModel> logger, 
-        LicenseDbContext dbContext,
+    public LicensesViewModel(ILogger<LicensesViewModel> logger,
+        IDbContextFactory<LicenseDbContext> dbContextFactory,
         IClipboard clipboard,
-        [FromKeyedServices("LicenseReporter")] 
+        [FromKeyedServices("LicenseReporter")]
         IProgressReporter<string> progressReporter)
     {
         _logger = logger;
         ProgressReporter = progressReporter;
         _clipboard = clipboard;
-        
+
         var keywordChanged = KeywordFilters
             .Select(f => f.WhenAnyValue(x => x.IsSelected))
             .Merge()
@@ -43,10 +44,10 @@ public partial class LicensesViewModel : ViewModelBase
             .StartWith(Unit.Default);
 
         _filteredLicensesHelper = this.WhenAnyValue(x => x.SearchText)
-            .CombineLatest(dbContext.WhenAnyValue(x => x.Licenses),
-                keywordChanged,
-                (search, licenses, _) => ApplyFilter(search, KeywordFilters, licenses))
+            .CombineLatest(keywordChanged, (search, _) => search)
             .Throttle(TimeSpan.FromMilliseconds(150))
+            .Select(search => Observable.FromAsync(ct => QueryLicensesAsync(dbContextFactory, search, KeywordFilters, ct)))
+            .Switch()
             .ObserveOn(AvaloniaScheduler.Instance)
             .ToProperty(this, x => x.FilteredLicenses).DisposeWith(Disposables);
 
@@ -73,21 +74,34 @@ public partial class LicensesViewModel : ViewModelBase
         }
     }
     
-    private static IEnumerable<OsiLicense> ApplyFilter(
-        string? search, IReadOnlyList<KeywordFilter> filters, IEnumerable<OsiLicense>? all)
+    private async Task<IEnumerable<OsiLicense>> QueryLicensesAsync(
+        IDbContextFactory<LicenseDbContext> dbContextFactory,
+        string? search,
+        IReadOnlyList<KeywordFilter> filters,
+        CancellationToken cancellationToken)
     {
-        var result = all ?? [];
+        try
+        {
+            await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(search))
-            result = result.Where(l =>
-                (l.SpdxId?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (l.Id?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false));
+            IQueryable<OsiLicense> query = dbContext.Licenses;
+            if (!string.IsNullOrWhiteSpace(search))
+                query = query.Where(l =>
+                    EF.Functions.Like(l.SpdxId, $"%{search}%") ||
+                    EF.Functions.Like(l.Id, $"%{search}%"));
 
-        var active = filters.Where(f => f.IsSelected).Select(f => f.Keyword).ToHashSet();
-        if (active.Count > 0)
-            result = result.Where(l => l.Keywords.Any(active.Contains));
+            var licenses = await query.ToListAsync(cancellationToken);
 
-        return result;
+            var active = filters.Where(f => f.IsSelected).Select(f => f.Keyword).ToHashSet();
+            return active.Count == 0
+                ? licenses
+                : licenses.Where(l => l.Keywords.Any(active.Contains)).ToList();
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            _logger.LogWarning(e, "Failed to query licenses for search {Search}", search);
+            return [];
+        }
     }
 }
 
