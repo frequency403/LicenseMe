@@ -1,4 +1,5 @@
 using System.Reactive.Linq;
+using Avalonia.Headless.XUnit;
 using LicenseMe.Avalonia.ViewModels;
 using LicenseMe.Core.Domain.Models;
 using LicenseMe.Core.Interfaces;
@@ -12,7 +13,7 @@ public sealed class SettingsViewModelTests
 {
     private readonly IConfigManager _configMock = Substitute.For<IConfigManager>();
 
-    [Fact]
+    [AvaloniaFact]
     public async Task OnLoad_PopulatesPropertiesFromConfig()
     {
         _configMock.LoadAsync(Arg.Any<CancellationToken>())

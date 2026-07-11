@@ -1,4 +1,5 @@
 using System.Reactive.Linq;
+using Avalonia.Headless.XUnit;
 using LicenseMe.Avalonia.ViewModels;
 using LicenseMe.Core.Domain.Models;
 using LicenseMe.Core.Interfaces;
@@ -13,7 +14,7 @@ public sealed class ScanViewModelTests
     private readonly IRepositoryScanner _scannerMock = Substitute.For<IRepositoryScanner>();
     private readonly IProgressReporter<string> _progressReporterMock = Substitute.For<IProgressReporter<string>>();
 
-    [Fact]
+    [AvaloniaFact]
     public async Task ScanCommand_PopulatesRepositories()
     {
         var expected = new DiscoveredRepository(
@@ -33,7 +34,7 @@ public sealed class ScanViewModelTests
         sut.Repositories[0].ShouldBe(expected);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void ScanCommand_CannotExecute_WhenScanRootIsEmpty()
     {
         var sut = new ScanViewModel(_scannerMock, _progressReporterMock)

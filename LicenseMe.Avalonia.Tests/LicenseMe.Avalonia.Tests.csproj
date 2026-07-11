@@ -23,4 +23,7 @@
     <ProjectReference Include="..\LicenseMe.Avalonia\LicenseMe.Avalonia.csproj" />
     <ProjectReference Include="..\LicenseMe.Core\LicenseMe.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <AdditionalFiles Include="App.axaml" />
+  </ItemGroup>
 </Project>
