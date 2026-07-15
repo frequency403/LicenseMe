@@ -197,9 +197,22 @@
                     <TextBlock Grid.Column="1" Text="License Text:" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </Grid>
                 <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
-                        BorderThickness="1"
+                        BorderThickness="1" Name="LicenseTextBorder"
                         CornerRadius="{DynamicResource License.CornerRadius.Badge}"
                         HorizontalAlignment="Stretch">
+                    <Border.Styles>
+                        <Style Selector="Button#CopyLicenseButton">
+                            <Setter Property="Opacity" Value="0" />
+                            <Setter Property="Transitions">
+                                <Transitions>
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.05" />
+                                </Transitions>
+                            </Setter>
+                        </Style>
+                        <Style Selector="Border#LicenseTextBorder:pointerover Button#CopyLicenseButton">
+                            <Setter Property="Opacity" Value="1" />
+                        </Style>
+                    </Border.Styles>
                     <Grid>
                         <ScrollViewer MaxHeight="{DynamicResource License.LicenseText.MaxHeight}"
                                       HorizontalScrollBarVisibility="Auto"
@@ -210,21 +223,14 @@
                                                  FontFamily="Cascadia Code,Consolas,Monospace"
                                                  FontSize="{DynamicResource License.FontSize.Detail}" />
                         </ScrollViewer>
-
-                        <!-- Copy button overlay, top-right, visible on pointer over -->
-                        <Button HorizontalAlignment="Right"
+                        <Button Name="CopyLicenseButton"
+                                HorizontalAlignment="Right"
                                 VerticalAlignment="Top"
                                 Margin="0,4,4,0"
                                 Padding="4"
-                                Opacity="0"
                                 Command="{Binding $parent[UserControl].((vm:LicensesViewModel)DataContext).CopyLicenseToClipboardCommand}"
                                 CommandParameter="{Binding LicenseText}"
                                 ToolTip.Tip="Copy license text">
-                            <Button.Styles>
-                                <Style Selector="Border:pointerover > Grid > Button">
-                                    <Setter Property="Opacity" Value="1" />
-                                </Style>
-                            </Button.Styles>
                             <avalonia:MaterialIcon Kind="ContentCopy"
                                                    IconSize="{DynamicResource License.Icon.Size}" />
                         </Button>
