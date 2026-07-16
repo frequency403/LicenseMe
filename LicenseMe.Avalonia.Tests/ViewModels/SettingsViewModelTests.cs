@@ -26,7 +26,7 @@ public sealed class SettingsViewModelTests
             });
 
         var sut = new SettingsViewModel(_configMock);
-        await sut.LoadCommand.Execute();
+        await sut.ExecuteLoadCommand.Execute();
 
         sut.CachingEnabled.ShouldBeFalse();
         sut.DefaultSpdxId.ShouldBe("Apache-2.0");

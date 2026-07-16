@@ -2,62 +2,29 @@ using System.Reactive;
 using LicenseMe.Core.Domain.Models;
 using LicenseMe.Core.Interfaces;
 using ReactiveUI;
+using ReactiveUI.SourceGenerators;
 
 namespace LicenseMe.Avalonia.ViewModels;
 
-public sealed class SettingsViewModel : ViewModelBase
+public sealed partial class SettingsViewModel : ViewModelBase
 {
     private readonly IConfigManager _configManager;
 
-    public bool CachingEnabled
-    {
-        get;
-        set => this.RaiseAndSetIfChanged(ref field, value);
-    } = true;
-
-    public string? DefaultSpdxId
-    {
-        get;
-        set => this.RaiseAndSetIfChanged(ref field, value);
-    }
-
-    public int? MaxScanDepth
-    {
-        get;
-        set => this.RaiseAndSetIfChanged(ref field, value);
-    }
-
-    public string NewExcludedPath
-    {
-        get;
-        set => this.RaiseAndSetIfChanged(ref field, value);
-    } = string.Empty;
-
-    public List<string> ExcludedPaths
-    {
-        get;
-        set => this.RaiseAndSetIfChanged(ref field, value);
-    } = [];
-
-    public ReactiveCommand<Unit, Unit> SaveCommand { get; }
-    public ReactiveCommand<Unit, Unit> AddExcludedPathCommand { get; }
-    public ReactiveCommand<string, Unit> RemoveExcludedPathCommand { get; }
+    [Reactive] private bool _cachingEnabled = true;
+    [Reactive] private string? _defaultSpdxId;
+    [Reactive] private int? _maxScanDepth;
+    [Reactive] private string _newExcludedPath = string.Empty;
+    [Reactive] private List<string> _excludedPaths = [];
 
     public SettingsViewModel(IConfigManager configManager)
     {
         this._configManager = configManager;
-
-        SaveCommand = ReactiveCommand.CreateFromTask(ExecuteSaveAsync);
-        AddExcludedPathCommand = ReactiveCommand.CreateFromTask(ExecuteAddExcludedAsync);
-        RemoveExcludedPathCommand = ReactiveCommand.Create<string>(ExecuteRemoveExcluded);
-
         // Load on construction; errors surface via ThrownExceptions
-        LoadCommand = ReactiveCommand.CreateFromTask(ExecuteLoadAsync);
-        LoadCommand.Execute().Subscribe();
+        ExecuteLoadCommand.Execute().Subscribe();
     }
 
-    public ReactiveCommand<Unit, Unit> LoadCommand { get; }
 
+    [ReactiveCommand]
     private async Task ExecuteLoadAsync(CancellationToken ct)
     {
         var config = await _configManager.LoadAsync(ct);
@@ -67,6 +34,7 @@ public sealed class SettingsViewModel : ViewModelBase
         ExcludedPaths = [.. config.ExcludedPaths];
     }
 
+    [ReactiveCommand]
     private async Task ExecuteSaveAsync(CancellationToken ct)
     {
         var config = new LicenseMeConfig
@@ -79,6 +47,7 @@ public sealed class SettingsViewModel : ViewModelBase
         await _configManager.SaveAsync(config, ct);
     }
 
+    [ReactiveCommand]
     private async Task ExecuteAddExcludedAsync(CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(NewExcludedPath)) return;
@@ -87,6 +56,7 @@ public sealed class SettingsViewModel : ViewModelBase
         await ExecuteSaveAsync(ct);
     }
 
+    [ReactiveCommand]
     private void ExecuteRemoveExcluded(string path)
     {
         ExcludedPaths = ExcludedPaths.Where(p => p != path).ToList();

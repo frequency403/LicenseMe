@@ -29,7 +29,7 @@
                              Text="{Binding NewExcludedPath}"
                              PlaceholderText="/path/to/exclude" />
                     <Button Grid.Column="1" Content="Add"
-                            Command="{Binding AddExcludedPathCommand}" Margin="4,0,0,0" />
+                            Command="{Binding ExecuteAddExcludedCommand}" Margin="4,0,0,0" />
                 </Grid>
                 <ItemsControl ItemsSource="{Binding ExcludedPaths}">
                     <ItemsControl.ItemTemplate>
@@ -37,7 +37,7 @@
                             <Grid ColumnDefinitions="*,Auto">
                                 <TextBlock Grid.Column="0" Text="{Binding}" VerticalAlignment="Center" />
                                 <Button Grid.Column="1" Content="✕"
-                                        Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).RemoveExcludedPathCommand}"
+                                        Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).ExecuteRemoveExcludedCommand}"
                                         CommandParameter="{Binding}" />
                             </Grid>
                         </DataTemplate>
@@ -45,7 +45,7 @@
                 </ItemsControl>
             </StackPanel>
 
-            <Button Content="Save" Command="{Binding SaveCommand}" Classes="accent" />
+            <Button Content="Save" Command="{Binding ExecuteSaveCommand}" Classes="accent" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

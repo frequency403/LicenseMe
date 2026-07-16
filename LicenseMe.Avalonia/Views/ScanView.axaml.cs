@@ -17,13 +17,16 @@ public sealed partial class ScanView : ReactiveUserControl<ScanViewModel>
         {
             ViewModel!.FolderPickerInteraction.RegisterHandler(async interaction =>
             {
+                interaction.SetOutput(string.Empty);
                 var topLevel = TopLevel.GetTopLevel(this)!;
                 var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(
                     new FolderPickerOpenOptions { Title = "Select scan root", AllowMultiple = false });
-
-                var picked = folders.FirstOrDefault()?.Path.LocalPath;
-                if (picked is not null) ViewModel.ScanRoot = picked;
-
+                if(folders.Count == 0)
+                    return;
+                if (folders[0].Path.LocalPath is not { } picked) 
+                    return;
+                
+                ViewModel.ScanRoot = picked;
                 interaction.SetOutput(picked);
             });
         });
