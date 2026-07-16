@@ -20,11 +20,11 @@ jobs:
   aur:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Download binary artifact
         if: inputs.artifact-name != ''
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.artifact-name }}
           path: ./dist
@@ -35,7 +35,7 @@ jobs:
             aur/${{ inputs.package-name }}/PKGBUILD
 
       - name: Deploy to AUR
-        uses: KSXGitHub/github-actions-deploy-aur@v3
+        uses: KSXGitHub/github-actions-deploy-aur@v4
         with:
           pkgname: ${{ inputs.package-name }}
           pkgbuild: ./aur/${{ inputs.package-name }}/PKGBUILD

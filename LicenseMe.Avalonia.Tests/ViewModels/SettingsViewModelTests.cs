@@ -5,7 +5,6 @@ using LicenseMe.Core.Domain.Models;
 using LicenseMe.Core.Interfaces;
 using NSubstitute;
 using Shouldly;
-using Xunit;
 
 namespace LicenseMe.Avalonia.Tests.ViewModels;
 
