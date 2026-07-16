@@ -20,7 +20,7 @@ public class LicenseDbContext(DbContextOptions<LicenseDbContext> options) : DbCo
         // OsiLicense.Links etc. carry [JsonPropertyName] for the OSI REST payload, not for JSON-column
         // mapping. The attribute convention picks it up anyway and fails validation because Links is a
         // top-level (non-nested) owned navigation mapped to plain columns, not a JSON column.
-        configurationBuilder.Conventions.Remove(typeof(RelationalNavigationJsonPropertyNameAttributeConvention));
+        configurationBuilder.Conventions.Remove<RelationalNavigationJsonPropertyNameAttributeConvention>();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -32,7 +32,7 @@ public class LicenseDbContext(DbContextOptions<LicenseDbContext> options) : DbCo
 
         var keywordsConverter = new ValueConverter<IReadOnlyCollection<OsiLicenseKeyword>, string>(
             v => JsonSerializer.Serialize(v.Select(k => (int)k), (JsonSerializerOptions?)null),
-            v => (JsonSerializer.Deserialize<List<int>>(v, (JsonSerializerOptions?)null).Select(i => (OsiLicenseKeyword)i).ToList())
+            v => ((JsonSerializer.Deserialize<List<int>>(v, (JsonSerializerOptions?)null) ?? new List<int>()).Select(i => (OsiLicenseKeyword)i).ToList())
         );
         modelBuilder.Entity<OsiLicense>(entityBuilder =>
         {

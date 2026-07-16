@@ -19,7 +19,7 @@ namespace LicenseMe.Avalonia.ViewModels;
 
 public partial class LicensesViewModel : ViewModelBase
 {
-    [Reactive] private OsiLicense _selectedLicense;
+    [Reactive] private OsiLicense? _selectedLicense;
     [Reactive] private string? _searchText;
     [Reactive] private OsiLicenseKeyword? _selectedKeyword;
     [ObservableAsProperty(ReadOnly = true)] private IEnumerable<OsiLicense> _filteredLicenses = [];

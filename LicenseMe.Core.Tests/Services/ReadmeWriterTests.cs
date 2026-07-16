@@ -16,11 +16,11 @@ public sealed class ReadmeWriterTests : IDisposable
     [Fact]
     public async Task WriteAsync_CreatesReadmeWithRepoName()
     {
-        await _sut.WriteAsync(_tempDir, "my-project");
+        await _sut.WriteAsync(_tempDir, "my-project", TestContext.Current.CancellationToken);
 
         var readmePath = Path.Combine(_tempDir, "README.md");
         File.Exists(readmePath).ShouldBeTrue();
-        var content = await File.ReadAllTextAsync(readmePath);
+        var content = await File.ReadAllTextAsync(readmePath, TestContext.Current.CancellationToken);
         content.ShouldContain("# my-project");
         content.ShouldContain("[LICENSE](LICENSE)");
     }

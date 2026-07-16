@@ -5,11 +5,13 @@ using LicenseMe.Avalonia.ViewModels;
 using LicenseMe.Avalonia.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace LicenseMe.Avalonia;
 
 public sealed class App(ILogger<App> logger, IServiceProvider serviceProvider) : Application
 {
+    public App() : this(NullLogger<App>.Instance, new ServiceCollection().BuildServiceProvider()) { }
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);

@@ -26,10 +26,10 @@ public sealed class LicenseWriterTests : IDisposable
     public async Task WriteAsync_ValidSpdxId_CreatesLicenseFile()
     {
         var license = new OsiLicense { SpdxId = "MIT" };
-        _osiClientMock.GetBySpdxIdAsync("MIT")
+        _osiClientMock.GetBySpdxIdAsync("MIT", TestContext.Current.CancellationToken)
             .Returns(Task.FromResult<IEnumerable<OsiLicense?>>([license]));
 
-        await _sut.WriteAsync(_tempDir, "MIT");
+        await _sut.WriteAsync(_tempDir, "MIT", TestContext.Current.CancellationToken);
 
         var licensePath = Path.Combine(_tempDir, "LICENSE");
         File.Exists(licensePath).ShouldBeTrue();
@@ -38,7 +38,7 @@ public sealed class LicenseWriterTests : IDisposable
     [Fact]
     public async Task WriteAsync_UnknownSpdxId_ThrowsInvalidOperationException()
     {
-        _osiClientMock.GetBySpdxIdAsync(Arg.Any<string>())
+        _osiClientMock.GetBySpdxIdAsync(Arg.Any<string>(), TestContext.Current.CancellationToken)
             .Returns(Task.FromResult<IEnumerable<OsiLicense?>>([null]));
 
         await Should.ThrowAsync<InvalidOperationException>(

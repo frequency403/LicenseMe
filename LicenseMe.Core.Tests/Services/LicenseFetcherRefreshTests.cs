@@ -175,7 +175,7 @@ public sealed class LicenseFetcherRefreshTests : IDisposable
         _config.CacheTimeToLive = TimeSpan.FromHours(1);
 
         _osiClientMock.GetByOsiIdAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(callInfo => CreateLicense(callInfo.Arg<string>(), "Refreshed"));
+            .Returns(callInfo => CreateLicense(callInfo.Arg<string>() ?? string.Empty, "Refreshed"));
 
         // Mirrors ExecuteAsync's tick body: the read context is fully closed before any refresh opens a
         // write.

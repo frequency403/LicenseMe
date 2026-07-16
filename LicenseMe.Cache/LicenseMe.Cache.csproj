@@ -16,10 +16,11 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
         <PackageReference Include="Microsoft.Extensions.Hosting"/>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
         <PackageReference Include="Microsoft.Extensions.Caching.Memory"/>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
         <PackageReference Include="OpenSourceInitiative.LicenseApi"/>
+        <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
+        <PackageReference Include="SQLitePCLRaw.core" />
     </ItemGroup>
 
     <ItemGroup>
